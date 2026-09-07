@@ -98,7 +98,7 @@ Each request is led by the skill whose judgment it needs most. Other skills do n
 | Family coordination | `ccf-common` | Understands requests, coordinates responsibilities, and protects evidence and privacy boundaries |
 | Project direction | `ccf-pipeline-orchestrator` | Clarifies goals, stages, decisive milestones, and the next move |
 | Project beginning | `ccf-project-scaffolder` | Prepares the paper workspace, templates, and research-material structure |
-| Idea judgment | `ccf-idea-reviewer` | Compares ideas and evaluates novelty, risk, and venue fit |
+| Idea judgment | `ccf-idea-reviewer` | Judges idea value, novelty, and mechanism; excludes experiments by default |
 | Idea development | `ccf-idea-optimizer` | Turns a rough direction into a problem, insight, method, and evidence path |
 | Literature search | `ccf-literature-searcher` | Finds related work, datasets, benchmarks, and published baselines |
 | Frontier tracking | `ccf-literature-monitor` | Watches new papers, nearby work, and changes in the field |
@@ -129,11 +129,11 @@ These are research visuals rather than release-announcement graphics. Each figur
 
 ### Paper method architecture
 
-The figure below extracts the computational relationships from `output/DynTrace.pdf` and draws on the treatment of hierarchy, density, and mechanism in LLaVA-4D Figure 2. Inputs and visual processing sit at the bottom, geometry-grounded evidence and the DTV/DTG branches form the middle, and token integration, the MLLM, and the answer appear at the top. We borrow a way of explaining mechanisms, not the source model or its exact composition.
+The figure below extracts the computational relationships from `output/DynTrace.pdf` and uses a layered layout to explain the mechanism and information flow. Inputs and visual processing sit at the bottom, geometry-grounded evidence and the DTV/DTG branches form the middle, and token integration, the MLLM, and the answer appear at the top. Connections follow computational dependencies so readers can trace the complete method.
 
 ![Paper method architecture](assets/visual-showcase/dyntrace-paper-mechanism-llava4d-reference.png)
 
-**How it was made:** The DynTrace paper was distilled into mechanism relationships and representation–operation pairs. The composition language of LLaVA-4D Figure 2 then guided a GPT Image 2 draft, followed by a check that the method remained complete. The displayed artifact is a PNG visual draft; after composition approval, it can be rebuilt as semantic SVG, vector PDF, or native-object PPTX.
+**How it was made:** The DynTrace paper was distilled into mechanism relationships and representation–operation pairs. GPT Image 2 then generated a layered architecture draft, followed by a check that the method remained complete. The displayed artifact is a PNG visual draft; after composition approval, it can be rebuilt as semantic SVG, vector PDF, or native-object PPTX.
 
 <details>
 <summary>Reference figure, source, and composition principles</summary>
@@ -184,7 +184,11 @@ More examples are available in [`assets/visual-showcase/`](assets/visual-showcas
 
 `ccf-humanization` checks what scientific information each sentence contributes: state supported facts directly, qualify genuine uncertainty accurately, and delete empty defenses. It removes imagined reviewer objections, apologies for the contribution, repeated caveats, ritual endings, and internal status narration. Paragraphs do not need an appended limitation or future-work sentence. Observed failures, scope conditions, reproducibility details, and required disclosures remain visible; only concrete unresolved scientific decisions need a separate warning.
 
-Review answers two different questions:
+Route by the requested judgment: “Is this direction worth pursuing?” uses `ccf-idea-reviewer` without needing an explicit score request; “Does this manuscript support its conclusions?” uses `ccf-paper-reviewer`. A full PDF can still receive concept-only review. Idea ratings cover problem value, novelty, insight, mechanism, elegance, and audience fit; experiments are assessed separately only when requested.
+
+Structured review reports use detailed output by default and brief output on explicit request. Manuscript reports develop contributions, strengths, concerns, prior art, method and evidence, reviewer perspectives, ratings, and action priorities. Idea reports develop problem value, novelty, mechanism logic, and development advice; experiments are outside their default scope. Findings carry specific evidence locations and stable IDs for revision tracking. Percentile ranks require a real comparable corpus. See the [manuscript report format](ccf-paper-reviewer/references/fixed-output-format.md) and [idea-review protocol](ccf-idea-reviewer/references/strict-idea-review.md).
+
+Manuscript re-review answers two different questions:
 
 ![Review and revision scoring](assets/ccfa-skills-review-boundaries.svg)
 
@@ -207,7 +211,7 @@ Clear responsibilities keep each judgment trustworthy:
 
 | Your request | Responsible skill | What it deliberately avoids |
 |---|---|---|
-| Score and rank ideas | `ccf-idea-reviewer` | Does not turn a low-scoring idea into a full method during evaluation |
+| Is this idea worthwhile, novel, or coherent? Score or compare ideas | `ccf-idea-reviewer` | Concept review by default; missing experiments do not lower its score |
 | Develop one rough idea | `ccf-idea-optimizer` | Does not make ranking its primary goal |
 | Find benchmarks and published results | `ccf-literature-searcher` | Does not invent an experiment conclusion |
 | Choose baselines, metrics, and ablations | `ccf-experiment-designer` | Does not alter or fabricate results |
