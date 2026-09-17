@@ -8,7 +8,7 @@ When scores are appropriate, separate three values. Honor qualitative or no-scor
 
 - **Criterion score:** how strong the artifact is on one dimension, normally 1-5 unless the venue defines another scale.
 - **Overall score or stance:** the calibrated decision-level result, normally 1-10 for paper review and weighted 1-5 or 1-10 for idea review.
-- **Confidence:** how much inspectable evidence was available for the judgment; low confidence does not automatically mean a low score.
+- **Confidence:** how securely the decisive judgment could be checked, considering the inspected evidence and domain familiarity. State source coverage separately; having a full PDF does not establish certainty, and low confidence does not automatically mean a low score.
 
 For each score of 3 or below on a 1-5 dimension scale, include the deduction and the condition that would move the score; use the corresponding low band on another scale. Do not give a number without an evidence basis. Use `N/A` for inapplicable criteria and `not assessed` for unavailable evidence; neither is zero. An unsupported claim identified in the reviewed material remains a substantive finding.
 
@@ -32,11 +32,11 @@ Repair condition:
 Expected score movement:
 ```
 
-Use score movement conservatively. Prefer ranges such as `+0.5 to +1 overall` only when a concrete change is likely to affect the calibrated stance. Do not claim acceptance probability.
+Use score movement conservatively. State the evidence or change that could alter the stance, using only values allowed by the chosen scale if a range is justified. A generic integer manuscript scale does not support half-point promises. Do not guarantee a numerical increase or claim acceptance probability.
 
 ## Report Structure And Finding Quality
 
-Manuscript reports use `../../ccf-paper-reviewer/references/fixed-output-format.md`; concept reports use `../../ccf-idea-reviewer/references/strict-idea-review.md`. Each defines a scope-appropriate detailed report by default, with a brief version for explicit brevity requests. The role blocks below are available components within that report, not extra mandatory reports.
+User-requested manuscript reports use `../../ccf-paper-reviewer/references/fixed-output-format.md`; concept reports use `../../ccf-idea-reviewer/references/strict-idea-review.md`. Each defines a detailed default and an explicit brief mode. A bounded internal contribution to another artifact returns its inspected scope, evidence-backed findings, unresolved concerns, and completion conditions to the integrating owner; it need not generate a separate scorecard or full report. This does not reduce the scope or structure of a requested review. The role blocks below are components, not extra mandatory reports.
 
 Give each material concern a stable ID and one complete explanation: claim/location, inspected basis, why it matters, and a change condition. Check correctness, decision relevance, and support before retaining it. Distinguish a demonstrated contradiction, missing support for an asserted result, and unavailable input. Questions are not established defects. Do not inflate severity to sound strict.
 

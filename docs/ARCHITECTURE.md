@@ -10,32 +10,35 @@ The family has four layers:
 
 | Layer | Purpose | Skills |
 | --- | --- | --- |
-| Priority humanization overlay | Keep publication prose direct and evidence-faithful alongside its content owner; remove empty defenses and retain meaningful uncertainty. | `ccf-humanization` |
+| First family preflight | Before every skill, keep communication direct and evidence-faithful; apply detailed prose/experiment modes when relevant. | `ccf-humanization` |
 | Research production chain | Move a paper project from project setup to rebuttal. | `ccf-project-scaffolder`, `ccf-pipeline-orchestrator`, `ccf-idea-optimizer`, `ccf-idea-reviewer`, `ccf-literature-monitor`, `ccf-literature-searcher`, `ccf-experiment-designer`, `ccf-visual-composer`, `ccf-paper-to-exemplar`, `ccf-paper-writer`, `ccf-paper-reviewer`, `ccf-integrity-auditor`, `ccf-submission-checker`, `ccf-rebuttal-writer` |
-| Shared state and policy | Keep routing, evidence, privacy, source registry, and artifact ownership consistent. | `ccf-common` |
+| Shared family preflight | After Humanization and before every specialist, establish scope, routing, prerequisites, evidence, and artifact controls. | `ccf-common` |
 | Family maintenance | Maintain skills, docs, generated SVGs, validation, and releases. | `ccf-skill-forger` |
 
-The main chain is:
+Compose work around requested outcomes and their prerequisites. One owner integrates each artifact; other skills contribute necessary grounding, scientific checks, and specialist output without requiring separate user requests. Reuse applicable evidence and select dependencies by their effect on the result. Typical paths include:
 
 ```text
-publication-prose preflight: recover scientific content and remove empty defenses
+idea judgment: closest-work grounding when missing -> concept review
+substantial writing: evidence/citation grounding -> writer -> affected review -> verified revision
+review + revision: reviewer -> writer -> affected checks, retaining resolved concerns
+new scientific figure: data/topology prerequisites -> visual composer -> render QA
+existing figure label update: reuse scientific inputs -> source edit -> affected exports
 
-scaffold -> orchestrate -> optimize idea -> review idea
-         -> monitor recent literature -> search literature
-         -> design experiments -> compose visuals -> optional exemplar extraction
-         -> write manuscript -> review manuscript -> audit integrity
-         -> check submission -> rebuttal / ledger / resubmission
+Every path begins with Humanization -> Common -> specialist work.
+Reuse active preflight rules at handoffs; detailed editing is task-dependent.
+Scaffolding, orchestration, monitoring, exemplars, and submission checks
+are selected when requested or necessary for a concrete deliverable.
 ```
 
-The rebuttal stage can loop back to writing, experiments, integrity audit, or submission checks. This is why rebuttal is not a dead-end output skill; it owns response structure and ledger discipline, while actual manuscript edits go back to `ccf-paper-writer`.
+Rebuttal owns response structure and ledger discipline; requested manuscript edits belong to `ccf-paper-writer`. Contributors return evidence and findings to the integrating owner, who resolves conflicts and verifies affected results. Return to upstream work when a dependency changes. Finish when requested outputs and applicable prerequisites/checks are complete, or explicitly identify the dependent result that remains incomplete. Role boundaries prevent responsibility confusion without preventing collaboration.
 
 ## Working Files And Incremental Execution
 
-Preserve explicit paths, existing project mappings, and established folders. When none exist, generated working files use `output/<task>/<artifact-id>/`, with source/assets/cache/build subdirectories created only when needed. One stable ID separates each figure or search topic; ordinary updates replace the current generated artifact. Raw observations, required review baselines, submitted packages, and requested history remain evidence.
+The file contract is the first instruction section in every runtime skill. Preserve explicit paths and this artifact's existing mappings/task folder. When none exist, generated working files use `ccfa-workfiles/<purpose>/<artifact-id>/`, such as `figures/method-overview/` or `reviews/paper-short-title/` beneath that root. Create source/assets/cache/build subdirectories only as needed. Names describe the task and content; the same artifact keeps its directory across skill transitions. Ordinary updates replace the current generated file, while raw observations, required comparison baselines, submitted packages, and requested history remain evidence. Clean only verified disposable files created by the task.
 
 An existing editable figure is updated from its authoring source and only affected requested formats are re-exported. A single current specification holds scientific labels, topology, layout, asset provenance, and useful QA state. Local changes do not require a new concept image or duplicate manifests. Failed exports remain explicitly incomplete while the last usable artifact is preserved.
 
-Reference loading follows the current mode. Reuse verified sources and extracted text when still applicable; send paths and changed evidence across handoffs. Complete assessments retain their required evidence coverage. Shared execution rules live in `ccf-common/references/task-modes.md`; file lifetimes and placement live in `ccf-common/references/artifact-contracts.md`.
+Reference loading follows the current mode. Reuse sources/checks only while their version, assumptions, coverage, and freshness support the decision. Pass the concrete question, prerequisite status, evidence anchors, paths, and completion condition. Internal checks return findings without another intake form or full report; requested reviews keep their templates and evidence coverage. Token efficiency comes from eliminating duplicate work and irrelevant context while completing necessary prerequisites. Conditional dependency routes live in `ccf-common/references/routing.md`, execution guidance in `task-modes.md`, handoffs in `handoff-modes.md`, and file placement in `artifact-contracts.md` under that shared reference directory.
 
 ## Artifact State
 
@@ -62,7 +65,7 @@ The family intentionally merged helper skills into owner modes. `ccf-visual-comp
 
 | Capability | Owner | Boundary |
 | --- | --- | --- |
-| Humanization and publication-faithfulness | `ccf-humanization` | Runs alongside publication writing; removes rhetorical defenses, preserves scientific facts, and raises only concrete unresolved decisions. Raw plans and assessment-only work do not load it by default. |
+| Humanization and publication-faithfulness | `ccf-humanization` | First preflight for every CCFA skill, including planning, review, and visuals. Preserve rigorous criticism and facts; apply detailed editing only to authorized prose and relevant experiment work. |
 | Workflow planning | `ccf-pipeline-orchestrator` | Coordinates stages; does not write, search, review, or rebut. |
 | Literature monitoring | `ccf-literature-monitor` | Tracks recent papers, venue feeds, labs, and competitors; deep retrieval stays with literature search. |
 | Compression and presentations | `ccf-paper-writer` | Changes manuscript-derived text; does not judge acceptance risk. |

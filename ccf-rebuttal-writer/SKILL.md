@@ -12,6 +12,16 @@ metadata:
 
 # CCF Rebuttal Writer
 
+## Family File Contract
+
+Before writing, resolve the canonical output and one stable working directory per task/artifact. Reuse explicit or established task paths; otherwise use project-root `ccfa-workfiles/<purpose>/<artifact-id>/`, with `source/`, `assets/`, `cache/`, and `build/` only as needed. Update current files in place; do not scatter intermediates or create iteration copies. Preserve inputs and required evidence; clean only verified disposable files created by this task. Use UTF-8 text I/O and check Chinese text after saving or rendering. For file work, apply [artifact-contracts.md](../ccf-common/references/artifact-contracts.md) and reuse the same paths across skill transitions.
+
+## Collaboration Contract
+
+Before specialist execution, read and apply [ccf-humanization](../ccf-humanization/SKILL.md) first, then [ccf-common](../ccf-common/SKILL.md). At every handoff, reuse their applicable active rules or refresh missing/changed ones. Both preflights are required even without prose; detailed editing, experiment, and maintenance modes run only when relevant.
+
+Keep one integrating owner and actively use other skills to resolve missing prerequisites or check material findings. Reuse applicable evidence; do not skip necessary groundwork to save tokens. Before finalizing, integrate contributions and verify affected results. Follow the conditional [cooperation routes](../ccf-common/references/routing.md); avoid unrelated stages and duplicate reports.
+
 ## Core Rule
 
 Handle post-review communication and revision accountability. Responses must be calm, factual, evidence-grounded, and promise only feasible changes. Resubmission adaptation is conservative by default: no new experiments and no bibliography changes unless the user explicitly authorizes them. Follow the user's requested response format: plain text, TeX, reviewer-by-reviewer, issue-grouped, table-first, or short response.
@@ -31,7 +41,7 @@ Handle post-review communication and revision accountability. Responses must be 
 4. Load `references/revision-ledger.md` whenever promised edits, manuscript locations, resubmission actions, review rounds, or cross-version score changes must be tracked. Update one canonical ledger in place; do not create a separate ledger per round unless the user requests snapshots.
 5. For full rebuttals, load `references/tex-templates.md` and use the TeX templates in `assets/templates/` when useful.
 6. For resubmission, map old reviewer concerns to the new venue's constraints through `ccf-submission-checker`; do not silently add experiments or bibliography changes.
-7. Hand off to `ccf-paper-writer` for manuscript revisions, `ccf-experiment-designer` for authorized new evidence, and `ccf-submission-checker` for venue/package checks.
+7. Complete necessary contributions through their owners: paper writer for requested revisions, experiment designer for authorized evidence work, and submission checker for applicable venue/package rules. Use integrity auditor for unresolved claim/result conflicts and reviewer for a consequential unanswered criticism. Integrate returned evidence and verify actual changes before claiming completion in the response; a planned experiment or promised edit remains planned.
 
 ## Adaptive Output Contract
 
@@ -63,5 +73,3 @@ Checklist status:
 ## Authorized Response Work
 
 Follow `../ccf-common/references/handoff-modes.md` and `../ccf-common/references/task-modes.md`. A requested response plus revision authorizes both deliverables through their owners. Group duplicate comments while preserving reviewer attribution and answer coverage. Distinguish supplied results, planned experiments, promised revisions, and completed edits; verify an edit's location before claiming it was made. Preserve word budgets and respond to actual concerns without gratuitous apologies, imagined objections, or defensive repetition. A concise factual clarification is not a scientific concession. Reply drafting does not authorize posting or submission.
-
-For file outputs, follow `../ccf-common/references/artifact-contracts.md`: resolve existing project paths first, keep generated working files under one stable task/artifact directory, and update canonical files in place. Load this shared policy only when files are written and it is not already in context.

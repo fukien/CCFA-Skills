@@ -43,6 +43,8 @@ Yann LeCun and James M. Manyika, [*Learning Abstractions*](https://www.amacad.or
 
 ## 快速开始
 
+**ICLR 2027 适配更新（2026-09-16）**：按官方指南校准匿名、页数、年份模板和 AI 使用声明检查；评审聚焦影响结论的证据与问题，沿用固定报告结构。[适配细节](ccf-paper-writer/references/venue-guides/iclr.md) · [更新记录](CHANGELOG.md)。版本仍为 `0.10.0`。
+
 选择你正在使用的 Agent：
 
 [Codex 安装](docs/getting-started/CODEX.md) · [Claude Code 安装](docs/getting-started/CLAUDE_CODE.md) · [Cursor 安装](docs/getting-started/CURSOR.md) · [Gemini CLI 安装](docs/getting-started/GEMINI_CLI.md) · [其他 Agent](docs/getting-started/OTHER_AGENTS.md) · [自动更新](docs/getting-started/AUTO_UPDATE.md)
@@ -89,7 +91,7 @@ npx skills add mikubaka88/CCFA-Skills --global --agent codex --skill '*' --yes -
 
 ![CCFA Skills 家族架构](assets/ccfa-skills-architecture.zh-CN.svg)
 
-每一次请求都由最适合它的 skill 负责。其他 skills 不会重复处理同一项任务，只会在需要时提供相邻能力。例如，`ccf-paper-writer` 负责正文写作，`ccf-humanization` 帮助语言保持自然；`ccf-experiment-designer` 决定实验表需要回答什么问题，`ccf-visual-composer` 再把这些信息转化为清晰的图表。
+所有 CCFA 任务都先启用 `ccf-humanization`，再启用 `ccf-common`，然后进入具体技能；检索、评审、绘图、实验与维护也遵循这一顺序。前者统一自然、直接且保留真实证据的表达，后者落实协作、范围、证据和文件规则。同一任务交接时复用已生效规则，只刷新变化或丢失的部分；详细改写与实验检查按实际任务执行，不重复生成前置报告。各技能继续负责自己的产物并整合必要协作。
 
 ### 17 个核心 skills
 
@@ -188,6 +190,8 @@ npx skills add mikubaka88/CCFA-Skills --global --agent codex --skill '*' --yes -
 
 结构化审核报告默认输出详细版，明确要求简要时使用简要版。文章审核展开贡献、优缺点、相关工作、方法与证据、多视角意见、评分及修改优先级；思路审核展开问题价值、创新差异、机制逻辑与发展建议，默认不评实验。意见绑定具体位置、依据与稳定编号，复审追踪问题是否解决；不会生成缺乏真实参照集的百分位排名。详见[文章报告模板](ccf-paper-reviewer/references/fixed-output-format.md)与[思路审核协议](ccf-idea-reviewer/references/strict-idea-review.md)。
 
+完整文章评审固定 14 节，写作专项固定 9 节，明确要求简版时使用 5 块。通用科学评分统一为新颖性、正确性、证据、意义、清晰度、可复核性、伦理与局限七维；证据要求按贡献类型解释，置信度与材料覆盖范围分开。生成报告可直接检查 Markdown 的标题顺序、评分字段和问题编号引用；会议或用户明确指定的格式继续优先。
+
 文章复审同时回答两个不同的问题：
 
 ![评审与修订评分](assets/ccfa-skills-review-boundaries.zh-CN.svg)
@@ -199,7 +203,11 @@ npx skills add mikubaka88/CCFA-Skills --global --agent codex --skill '*' --yes -
 
 ![绘图交付方式](assets/ccfa-skills-artifacts.zh-CN.svg)
 
-数值图优先来自可复现代码和可追溯数据。新的方法图、系统图与架构图通常先由 GPT Image 2 探索与内容相称的视觉语言，用户已要求的可编辑 SVG、矢量 PDF 或 PPTX 会继续完成。已有可编辑图的文字、颜色、间距、数值或导出修改直接更新源文件，并只重新导出受影响的格式。常见概念使用风格统一的开源图标，方法特有的图标则单独生成和清理。进入 PPTX 后，文字、框、节点与连接线尽量保留为原生对象，使最终成图能够真正修改。
+数值图优先来自可复现代码和可追溯数据。新的方法图、系统图与架构图通常先由 GPT Image 2 探索与内容相称的视觉语言，用户已要求的可编辑 SVG、矢量 PDF 或 PPTX 会继续完成。已有可编辑图的文字、颜色、间距、数值或导出修改直接更新源文件，并只重新导出受影响的格式。常见概念使用风格统一的开源图标，方法特有的科学对象可在初稿中统一绘制，需要复用或编辑时再单独整理为资产。进入 PPTX 后，文字、框、节点与连接线尽量保留为原生对象，使最终成图能够真正修改。
+
+绘图按内容与论文版面选择画布比例，不默认方形。先确定整体分区和重点机制，再安排紧凑的模块、图标与连线路径；同类模块跨区域对齐边缘、文字基线和连接端口，并检查大块无效留白。字体按最终论文宽度统一分级，默认 Times New Roman，需要 comic 效果时使用 Comic Sans MS；保留必要科学标注，减少重复解释和装饰性数字。
+
+可选预设包括正式机制、柔和机制、视觉证据、几何流与紧凑漫画，配合七套扩展配色。会议场景帮助选择预设，实际模板要求优先；这些是设计建议，不是会议官方风格。预设同时协调字体、线宽、分组和颜色，参考图各自负责明确的区域或属性。像素间距是生成目标，精确坐标和真实字体在已要求的可编辑版本中校准。局部修改检查关联连线和未修改区域，中间文件仍按图归档并更新当前版本。
 
 如果用户明确不使用 GPT Image 2，或希望直接从代码生成，`ccf-visual-composer` 会改用纯 SVG 路线并清楚标注。
 
@@ -207,7 +215,7 @@ npx skills add mikubaka88/CCFA-Skills --global --agent codex --skill '*' --yes -
 
 ![技能协作边界](assets/ccfa-skills-routing.zh-CN.svg)
 
-清晰的分工让每项判断保持可信：
+每个产物有一位负责整合与交付的主责技能，其他技能按前置依赖和质量需要参与。分工不限制必要协作：
 
 | 你的请求 | 负责的 Skill | 明确不负责 |
 |---|---|---|
@@ -216,7 +224,7 @@ npx skills add mikubaka88/CCFA-Skills --global --agent codex --skill '*' --yes -
 | 搜 benchmark 与公开结果 | `ccf-literature-searcher` | 不替实验结果作结论 |
 | 设计 baseline、指标与消融 | `ccf-experiment-designer` | 不改动或虚构结果 |
 | 评审、评分与诊断 | `ccf-paper-reviewer` | 不在评审过程中改写正文 |
-| 改写、润色与压缩 | `ccf-paper-writer` | 不在改写时重新评价研究 |
+| 改写、润色与压缩 | `ccf-paper-writer` | 不擅自改变研究问题、方法和结论 |
 | 绘制图表与 PPTX | `ccf-visual-composer` | 不选择数据集、指标或数字 |
 
 ## 仓库结构
@@ -235,9 +243,13 @@ CCFA-Skills/
 
 较长的规则放在 `references/`，可重复执行的操作放在 `scripts/`。迭代过程中沿用固定文件名，由新版本覆盖旧版本，避免堆积难以辨认的过程文件。
 
-按任务模式读取参考资料：小段润色不加载整套范例，单图调整不读取所有绘图指南，已有文献和提取文本在来源版本不变时复用。交接传递当前文件路径、证据位置和本次改动，避免重复复制全文、工具日志和报告；完整审稿仍保留必要的全文证据覆盖。
+协作从最终结果倒推前置条件：判断创新性前核对近邻工作，实质性写作前厘清主张、证据和引用，科学绘图前确认数据含义与方法结构。缺失、冲突或过期的依据交给相应技能补齐；已有且仍适用的证据直接复用。实质性改写后检查受影响的论证，解决问题后再交付；思路审核仍不要求实验完成。内部协作返回相关发现，正式审稿保留固定模板和必要的全文覆盖。节省 token 的重点是重复检索、重复报告、无关参考和重复询问，不是省略前置工作。详见[协作路由](ccf-common/references/routing.md)与[交接规则](ccf-common/references/handoff-modes.md)。
 
-中间文件先沿用用户指定路径、`ccfa.yaml` 映射和项目已有目录；没有约定时，使用 `output/<任务>/<产物ID>/`。需要时才创建 `source/`、`assets/`、`cache/` 和 `build/`，分别保存可复用源文件、图标资源、提取缓存和当前预览/构建产物。不同图使用不同固定 ID，普通迭代更新原文件；原始数据、投稿归档及需要对比的版本保留。失败生成不覆盖可用结果，也不把过期导出当作新版。完整规则见 [产物合约](ccf-common/references/artifact-contracts.md)。
+文件约束已前置到全部 17 个 skill 入口。中间文件优先沿用用户指定路径、该产物的 `ccfa.yaml` 映射和已有任务目录；新任务使用项目根目录下独立的 `ccfa-workfiles/<任务用途>/<具体产物>/`，不嵌套在通用 `output/` 中。例如 `figures/method-overview/`、`reviews/paper-short-title/`、`literature/retrieval-memory/` 分别存放方法图、论文评审和主题检索的工作文件。若同名目录已被其他用途占用，采用稳定的 `ccfa-workfiles-<项目名>/`，不混用或覆盖。
+
+需要时才创建 `source/`（可复用源文件）、`assets/`（参考与图标）、`cache/`（下载与提取缓存）、`build/`（当前预览与构建日志）。同一产物跨 skill 共用目录，普通迭代更新原文件，不使用含义不明的 `temp`、`misc` 或 `final-final`。完成后清理本任务产生且已确认可丢弃的过程文件，保留原始数据、可编辑源文件、最终产物及必要对比证据；失败生成不覆盖可用结果。已有目录不因新命名规则被搬迁，完整规则见[产物合约](ccf-common/references/artifact-contracts.md)。
+
+中文输出采用显式 UTF-8 读写，兼容带 BOM 的输入；终端管道、中文文件名和图形字体分别检查。家族校验已加入中文与生僻字回归，解码错误会明确报出，避免用替换字符掩盖问题。图中的中文使用可用的 CJK 后备字体，保留原定的西文字体。
 
 ## 维护与验证
 

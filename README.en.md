@@ -43,6 +43,8 @@ CCFA Skills grew from this problem. We treat a paper as a research storyline tha
 
 ## Quick start
 
+**ICLR 2027 adaptation (2026-09-16)**: updated anonymity, page-budget, year-specific template, and AI-use disclosure checks against official guidance. Reviews focus on decision-relevant evidence and concerns within the existing fixed report structure. [Details](ccf-paper-writer/references/venue-guides/iclr.md) · [Changelog](CHANGELOG.md). Version remains `0.10.0`.
+
 Choose the agent you use:
 
 [Codex](docs/getting-started/CODEX.md) · [Claude Code](docs/getting-started/CLAUDE_CODE.md) · [Cursor](docs/getting-started/CURSOR.md) · [Gemini CLI](docs/getting-started/GEMINI_CLI.md) · [Other agents](docs/getting-started/OTHER_AGENTS.md) · [Automatic updates](docs/getting-started/AUTO_UPDATE.md)
@@ -89,7 +91,7 @@ The difficulties of paper research are connected, but they do not require the sa
 
 ![CCFA Skills family architecture](assets/ccfa-skills-architecture.svg)
 
-Each request is led by the skill whose judgment it needs most. Other skills do not compete for the same task; they contribute only when the work reaches their domain. For example, `ccf-paper-writer` shapes the prose while `ccf-humanization` keeps its voice natural. `ccf-experiment-designer` decides what a result table must demonstrate, and `ccf-visual-composer` turns that information into a readable figure.
+Every CCFA task activates `ccf-humanization` first, then `ccf-common`, before the specialist, including retrieval, review, visuals, experiments, and maintenance. Humanization keeps communication direct and evidence-faithful; Common applies scope, collaboration, evidence, and file rules. Reuse active rules across contributors and refresh only changed or missing context. Detailed rewriting and experiment checks depend on the actual task, without duplicate preflight reports. Specialists retain ownership and integrate necessary contributions.
 
 ### The 17 core skills
 
@@ -188,6 +190,8 @@ Route by the requested judgment: “Is this direction worth pursuing?” uses `c
 
 Structured review reports use detailed output by default and brief output on explicit request. Manuscript reports develop contributions, strengths, concerns, prior art, method and evidence, reviewer perspectives, ratings, and action priorities. Idea reports develop problem value, novelty, mechanism logic, and development advice; experiments are outside their default scope. Findings carry specific evidence locations and stable IDs for revision tracking. Percentile ranks require a real comparable corpus. See the [manuscript report format](ccf-paper-reviewer/references/fixed-output-format.md) and [idea-review protocol](ccf-idea-reviewer/references/strict-idea-review.md).
 
+Full manuscript reviews keep 14 ordered sections, writing reviews keep 9, and explicitly requested brief reports use 5 blocks. The generic scientific scorecard has seven criteria: novelty, soundness, evidence, significance, clarity, reproducibility, and ethics/limitations. Evidence expectations follow contribution type; confidence and source coverage are separate. Markdown reports can be checked directly for section order, rating fields, and concern-ID references. Explicit venue or user formats retain priority.
+
 Manuscript re-review answers two different questions:
 
 ![Review and revision scoring](assets/ccfa-skills-review-boundaries.svg)
@@ -199,7 +203,11 @@ Manuscript re-review answers two different questions:
 
 ![Visual delivery](assets/ccfa-skills-artifacts.svg)
 
-Quantitative figures begin with reproducible code and traceable data. Method, system, and architecture figures usually begin with GPT Image 2 exploring a visual language that suits the content. Requested editable SVG, vector PDF, or PPTX deliverables continue under the existing authorization; additional formats can be offered when useful. Existing editable figures are revised in their authoring source, with only affected exports rebuilt; local text, color, spacing, value, or format changes do not restart image generation. Common concepts use a coherent open-source icon family, while method-specific icons are generated and cleaned separately. In PPTX, text, boxes, nodes, and connectors remain native objects wherever possible, so the final figure can still be meaningfully revised.
+Quantitative figures begin with reproducible code and traceable data. Method, system, and architecture figures usually begin with GPT Image 2 exploring a visual language that suits the content. Requested editable SVG, vector PDF, or PPTX deliverables continue under the existing authorization; additional formats can be offered when useful. Existing editable figures are revised in their authoring source, with only affected exports rebuilt; local text, color, spacing, value, or format changes do not restart image generation. Common concepts use a coherent open-source icon family, while method-specific scientific objects can be drawn together in the initial draft and isolated as assets when reuse or editing requires it. In PPTX, text, boxes, nodes, and connectors remain native objects wherever possible, so the final figure can still be meaningfully revised.
+
+Figure aspect ratio follows the content and paper placement, with no default square. Allocate space to the main mechanism before placing compact modules, illustrations, and connectors. Align peer edges, text baselines, and ports across groups, and inspect unused regions. Set a consistent type scale at final paper width: Times New Roman by default, or Comic Sans MS for a requested comic treatment. Keep essential scientific labels while removing repeated explanation and ornamental numbers.
+
+Five coordinated presets cover formal mechanisms, soft mechanisms, visual evidence, geometric flows, and compact comic illustrations, alongside seven additional palettes. Venue context helps select a preset; actual template requirements take precedence. These are design suggestions, not official conference styles. Each preset coordinates type, strokes, grouping, and color, while each reference has a specific region or property to guide. Pixel gaps are generation targets; requested editable outputs enforce live fonts and coordinates. Local edits check attached connectors and protected regions, with current artifacts organized per figure.
 
 When a user does not want GPT Image 2 or explicitly prefers code-first drawing, `ccf-visual-composer` uses a pure-SVG route and labels it clearly.
 
@@ -207,7 +215,7 @@ When a user does not want GPT Image 2 or explicitly prefers code-first drawing, 
 
 ![Skill collaboration boundaries](assets/ccfa-skills-routing.svg)
 
-Clear responsibilities keep each judgment trustworthy:
+Each artifact has an owner responsible for integration and delivery. Other skills contribute according to prerequisites and quality needs; role boundaries support necessary collaboration:
 
 | Your request | Responsible skill | What it deliberately avoids |
 |---|---|---|
@@ -216,7 +224,7 @@ Clear responsibilities keep each judgment trustworthy:
 | Find benchmarks and published results | `ccf-literature-searcher` | Does not invent an experiment conclusion |
 | Choose baselines, metrics, and ablations | `ccf-experiment-designer` | Does not alter or fabricate results |
 | Review, score, and diagnose | `ccf-paper-reviewer` | Does not rewrite the manuscript while judging it |
-| Rewrite, polish, and compress | `ccf-paper-writer` | Does not conduct a new scientific review under the name of editing |
+| Rewrite, polish, and compress | `ccf-paper-writer` | Does not change the scientific problem, method, or conclusion without authorization |
 | Draw figures, tables, and PPTX | `ccf-visual-composer` | Does not choose datasets, metrics, or values |
 
 ## Repository
@@ -235,9 +243,13 @@ CCFA-Skills/
 
 Longer guidance lives in `references/`, while repeatable work belongs in `scripts/`. Iterative artifacts keep stable names so that a new version replaces the previous one instead of leaving behind a trail of indistinguishable attempts.
 
-Load references by task mode: local prose edits do not load entire exemplar bundles, figure updates do not read every drawing guide, and verified sources/extractions are reused while their versions remain applicable. Handoffs carry canonical paths, evidence locations, and changes instead of repeating full texts and logs. Full reviews still cover the evidence needed for the requested assessment.
+Work backward from the result to its prerequisites: closest-work evidence before novelty judgments, claims and citation support before substantive writing, and data semantics/topology before scientific rendering. Use the relevant skills to resolve missing, conflicting, or stale evidence; reuse valid checks. Verify affected arguments after substantial revisions and integrate fixes before delivery. Concept review still does not require completed experiments. Internal contributions return focused findings; requested reviews retain their fixed templates and full scoped coverage. Save tokens on repeated retrieval, duplicate reports, irrelevant references, and repeated intake, while completing necessary groundwork. See [cooperation routes](ccf-common/references/routing.md) and [handoff rules](ccf-common/references/handoff-modes.md).
 
-Working files follow explicit user paths, existing `ccfa.yaml` mappings, and established project directories first. Otherwise use `output/<task>/<artifact-id>/`, creating `source/`, `assets/`, `cache/`, and `build/` only as needed. Each figure has a stable ID; iterations update the current files. Preserve raw data, submission archives, and required comparison baselines. Failed generation retains the usable result and does not relabel stale exports as current. See the [artifact contract](ccf-common/references/artifact-contracts.md).
+The file contract leads all 17 skill entrypoints. Explicit paths, this artifact's existing mappings, and established task folders take priority. New tasks use a dedicated project-root `ccfa-workfiles/<purpose>/<artifact-id>/`, outside generic `output/` folders. Examples include `figures/method-overview/`, `reviews/paper-short-title/`, and `literature/retrieval-memory/`. If the name belongs to unrelated material, use a stable `ccfa-workfiles-<project-id>/` rather than merging or overwriting contents.
+
+Create `source/` (reusable authoring files), `assets/` (reference/icon assets), `cache/` (downloads/extractions), and `build/` (current previews/logs) only when needed. Skills working on the same artifact share its directory and update current files. Avoid ambiguous new names such as `temp`, `misc`, or `final-final`. Remove only verified disposable files created by the task; retain original evidence, editable sources, requested outputs, and necessary comparison baselines. Failed builds preserve usable results. Existing folders are not migrated to adopt the new default; see the [artifact contract](ccf-common/references/artifact-contracts.md).
+
+Chinese output uses explicit UTF-8 I/O with optional BOM support on input. Shell pipes, Unicode filenames, and glyph coverage are checked separately. Family validation includes Chinese and uncommon-character regressions and reports decoding errors rather than masking them with replacement characters. Figures retain the chosen Latin font and use an available CJK fallback.
 
 ## Maintenance and validation
 
