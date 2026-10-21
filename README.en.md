@@ -61,6 +61,8 @@ One-line installation for Codex:
 npx skills add mikubaka88/CCFA-Skills --global --agent codex --skill '*' --yes --copy
 ```
 
+This command installs the 17 skills. For bundled LaTeX templates or a partial installation, follow the [installation matrix](docs/INSTALLATION_MATRIX.md) to include the required sibling resources. With `--copy`, pulling source updates also requires refreshing the installed copies; see the [update guide](docs/getting-started/AUTO_UPDATE.md).
+
 Then describe the research problem in ordinary language:
 
 ```text
@@ -306,7 +308,7 @@ Chinese output uses explicit UTF-8 I/O with optional BOM support on input. Shell
 
 ## Latest updates: keep long projects on course and give good ideas room to grow
 
-**v0.11.0 · 2026-10-15**
+**v0.11.0 · Updated 2026-10-20**
 
 You are a few weeks into a research project. The conversation keeps growing, and the assistant keeps answering, but it gradually loses sight of why you started. You bring in more assistants, only to find that they have read the same papers and returned similar answers. A paragraph finally looks polished, yet its argument is still hard to follow.
 
@@ -324,7 +326,21 @@ This is our practical approach to degraded or inconsistent model behavior: make 
 
 When exploring a direction, assistants can first develop mechanisms independently and then exchange relevant evidence. When checking a paper, one can verify citations while another examines numbers and conclusions, with one person or agent responsible for bringing the findings back into the manuscript. Each contributor has a concrete question and returns sources that can be checked.
 
-This release makes that division of work explicit. Independent tasks can run in parallel, while closely connected arguments keep one author responsible for coherence. Shared files have a clear owner, and findings from an older version are checked before reuse. Hosts that support multiple agents can use these rules to coordinate the work and integrate results once the evidence is sufficient. See [task modes](ccf-common/references/task-modes.md) and [handoffs](ccf-common/references/handoff-modes.md).
+Delegate complete questions. One author carries the problem, insight, and method through a connected argument; helpers take on independent evidence checks, mechanism comparisons, or implementation work with a defined use for each result. Return local gaps to the original helper and regroup work that has become fragmented. Shared files have a clear owner, and findings from an older version are checked before reuse. Hosts with real subagents can apply these rules without splitting work more finely merely because reasoning effort is higher. See [task modes](ccf-common/references/task-modes.md) and [handoffs](ccf-common/references/handoff-modes.md).
+
+### Autonomous research: let each experiment inform the next
+
+An overnight experiment fails. The code may be broken, the comparison may not distinguish two explanations, or the observation may contradict the hypothesis. Knowing which layer to revisit keeps a research project moving.
+
+This update connects the research loop to actual execution: run a baseline, change the research code for a specific hypothesis, inspect measured results, then keep, discard, repair, or explore another mechanism. The objective and comparison conditions stay explicit while evidence can change the route. A better metric still needs scientific interpretation, and a crashed program is not a negative scientific result. Existing skills contribute where needed, without a new review panel after every run.
+
+An experiment can rule out a mistaken explanation without setting a new high score. Keep that finding: the best measured candidate and directions worth exploring serve different purposes. A lesson from one project should be checked on other tasks before becoming a shared rule.
+
+The lightweight runner handles sequential experiments, attempt and execution-time limits, protected-file checks, raw logs, and scoped restoration. The host agent proposes hypotheses, edits candidates, and continues the investigation. The runner starts no model service or background research task on its own; training and other work are performed by the specified command. Reusing an experiment ID returns its record instead of silently rerunning it. Active context keeps the goal, best candidate, and relevant failure conditions, with raw evidence available when needed.
+
+> Investigate retrieval stopping rules autonomously. Use the project's evaluator and data split. Run at most six attempts including the baseline and failures, with 60 seconds per attempt and 240 seconds of cumulative experiment execution. Use no paid service. Inspect existing results first, choose experiments that distinguish mechanisms, and deliver the best candidate with the original records and unresolved questions.
+
+See the [research-loop guide and commands](ccf-pipeline-orchestrator/references/autonomous-research.md). An explicit research request and its budget activate this mode; the seven preference controls remain unchanged, and maintenance evolution still concerns skill maintenance. Ordinary edits, concept reviews, and plan-only requests retain their existing scope. Runner tests check execution and recovery; research quality and total token gains still need comparisons on real projects.
 
 ### Personal preferences: spend time on what matters to you now
 
@@ -338,6 +354,24 @@ A new module should explain what it changes and what would be lost without it. I
 
 Writing starts with the paragraph's point. It checks whether one sentence gives a reason, evidence, or an inference for the next, then improves order and wording. This release adds diagnostics for English and Chinese semicolons and clusters of `rather than`, helping locate passages where the argument may be hard to follow. Necessary scientific comparisons and limitations stay intact. See [idea development](ccf-idea-optimizer/SKILL.md), [prose guidance](ccf-paper-writer/references/prose-quality-guardrails.md), and [Humanization](ccf-humanization/SKILL.md).
 
+### Writing handoffs: keep empty caveats from coming back
+
+Our follow-up audit found that some artificial prose came from conflicting instructions. Writing would remove a defensive sentence, then a review template would demand a limitation at the end. A literature search could find that an idea was already covered and still require a rescue route. We removed these conflicts. Writing, ideation, and experiment planning now share a practical rule: explain the object, operation, and relationship. Design the study around the current question, identify a specific gap in review, and close the issue once it is resolved.
+
+Calling a proposal “verifiable and implementable” adds little without explaining what it does. Saying an index supports offline incremental updates conveys a technical property worth keeping. New diagnostics flag clusters of abstract labels, repeated comparisons, and defensive prose inside tables for contextual inspection. Your explicitly selected punctuation and rhythm conventions take precedence over generic surface preferences. You can ask:
+
+> Revise this paragraph by clarifying how its reasons and evidence connect. Preserve the numbers, experimental conditions, and limitations that affect the conclusion.
+
+### Figures: make them readable on the paper page
+
+A figure can look clear on a large monitor and become illegible in a manuscript. Changing a method's color across panels or independently scaling values that differ a hundredfold can also mislead the reader. The plotting tools now support final print width, minimum type size, optional point-based stroke widths, consistent entity colors, shared axes and color ranges for comparable panels, consolidated legends, and optional titles and annotations.
+
+Heatmaps, correlation matrices, and volcano plots also support biological and other scientific data. The tools distinguish p-values, adjusted p-values, and q-values, require an explicit display policy for zeros, and reject invalid correlations and negative probabilities. Diagram work starts from the reference's layout relationships and components, followed by alignment, spacing, text, and scientific-content checks. Extra figure candidates and independent reviews still use the existing preference switches.
+
+> Arrange these results for a two-column paper at 7 inches wide with text of at least 9 pt. Keep each method's color consistent, share axes for panels with the same units, remove repeated titles, and inspect the final-size rendering.
+
+[Runnable plotting examples](ccf-visual-composer/references/python-plot-recipes.md) cover shared heatmap normalization, small multiples, and a q-value volcano plot. Existing calls remain supported; invalid data that used to be silently altered now produce explicit errors.
+
 ### Files and context: pick up where you left off
 
 After editing a figure or moving to another skill, you should still be able to find its source and current result. Skills now share clearly named working directories, update current files during ordinary revisions, and pass along the locations of relevant evidence. Original material, editable sources, and useful validation records are retained. Disposable files are cleaned up within the task that created them. Detailed instructions load when needed, reducing repeated copies of the entire history. See [Repository](#repository) for directory examples.
@@ -350,11 +384,13 @@ The update keeps the 17-skill family and existing review structure, with the rel
 
 ```powershell
 python ccf-common\scripts\check_v04.py
+python ccf-visual-composer\scripts\test_plot_recipes.py
 python ccf-common\scripts\check_path_privacy.py
 python ccf-common\scripts\check_markdown_links.py
 python ccf-common\scripts\check_sources.py
 python ccf-common\scripts\test_preferences.py
 python ccf-common\scripts\test_continuity.py
+python ccf-pipeline-orchestrator\scripts\test_research_loop.py
 node --check ccf-common/assets/configurator/app.js
 node ccf-common/scripts/test_configurator.js
 ```

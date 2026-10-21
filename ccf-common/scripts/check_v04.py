@@ -119,6 +119,8 @@ def check_skills(errors: list[str]) -> list[str]:
                 prompt = interface.get("default_prompt", "")
                 if not isinstance(prompt, str) or f"${name}" not in prompt:
                     fail(errors, f"{agent.relative_to(ROOT)}: missing own skill in default_prompt")
+                if not isinstance(prompt, str) or not all(token in prompt for token in ("$ccf-humanization", "$ccf-common")):
+                    fail(errors, f"{agent.relative_to(ROOT)}: default_prompt must expose both family preflights")
                 for sibling in re.findall(r"\$(ccf-[a-z0-9-]+)", prompt if isinstance(prompt, str) else ""):
                     if sibling not in EXPECTED_SKILLS:
                         fail(errors, f"{agent.relative_to(ROOT)}: unknown skill {sibling}")
@@ -240,6 +242,7 @@ def check_required_files(errors: list[str]) -> None:
         "ccf-common/assets/configurator/styles.css",
         "ccf-common/assets/configurator/app.js",
         "ccf-visual-composer/resources/python/ccfa_plot_recipes.py",
+        "ccf-visual-composer/scripts/test_plot_recipes.py",
         "ccf-visual-composer/references/python-plot-recipes.md",
         "ccf-visual-composer/references/plot-inspiration-map.md",
         "ccf-visual-composer/references/architecture-diagram-generation.md",
@@ -433,6 +436,7 @@ def check_prose_regressions(errors: list[str]) -> None:
             "The result might potentially suggest a useful relation.",
             "为避免审稿人质疑，我们加入消融实验。",
             "我们并不试图解决所有问题。",
+            "We make no claims about broad applicability.",
         ]
         for text in candidates:
             result = inspect(text, "paragraph")
@@ -441,6 +445,24 @@ def check_prose_regressions(errors: list[str]) -> None:
         factual = "We use only training labels. The bound does not hold when the stated assumption fails. The observations suggest a relation; causality remains untested. Robust optimization minimizes the worst-case loss."
         if any(item["code"] == "defensive_framing" for item in inspect(factual, "paper")["issues"]):
             fail(errors, "prose checker treats legitimate scientific scope or uncertainty as defensive")
+        table = "| Purpose | Method |\n| --- | --- |\n| 为避免审稿人质疑，我们加入消融实验。 | 12% |"
+        table_hits = [item for item in inspect(table, "paragraph")["issues"] if item["code"] == "defensive_framing"]
+        if len(table_hits) != 1 or table_hits[0].get("line") != 3:
+            fail(errors, "prose checker missed authored table-cell prose or lost its source line")
+        expressions = (
+            ("我们构建一个可验证、可实现的框架。", "capability_label_cluster"),
+            ("为了保险起见，我们只在现有模型上增加一个小模块。", "decision_justification"),
+            ("为求稳妥，再增加十组边界实验。", "decision_justification"),
+        )
+        for candidate, code in expressions:
+            hits = [item for item in inspect(candidate, "paragraph")["issues"] if item["code"] == code]
+            if len(hits) != 1 or hits[0]["severity"] != "advisory" or hits[0].get("line") != 1:
+                fail(errors, f"prose checker lost contextual {code} candidate")
+            if any(item["code"] == code for item in inspect(f"```text\n{candidate}\n```", "paragraph")["issues"]):
+                fail(errors, f"prose checker scans protected code for {code}")
+        necessary = "该方案在离线设置中可实现，因为索引已经给定。相关性不能证明干预有效。相比全量搜索，索引减少了候选数。"
+        if any(item["code"] in {"capability_label_cluster", "decision_justification", "repeated_contrast", "defensive_framing"} for item in inspect(necessary, "paragraph")["issues"]):
+            fail(errors, "prose checker treats a useful technical property, causal boundary or isolated comparison as empty defense")
         quoted = '```text\nWe do not claim to solve every task.\n```\n> We do not claim to solve every task.\n\\begin{equation}a---b\\end{equation}\n% We do not claim to solve every task.\nWe do not claim to solve every task.'
         findings = [item for item in inspect(quoted, "paper")["issues"] if item["code"] == "defensive_framing"]
         if len(findings) != 1 or findings[0].get("line") != 7:
@@ -452,6 +474,18 @@ def check_prose_regressions(errors: list[str]) -> None:
             fail(errors, "prose checker mistakes a Markdown percentage for a TeX comment")
         if not any(item["code"] == "em_dash_limit" for item in inspect("A — B — C — D — E.", "paper")["issues"]):
             fail(errors, "prose checker lost the full-paper punctuation preference")
+        selected_style = "A — B — C — D — E."
+        for selected_limit in (4, "off"):
+            if any(item["code"] == "em_dash_limit" for item in inspect(selected_style, "paper", em_dash_limit=selected_limit)["issues"]):
+                fail(errors, "prose checker overrides an explicitly selected punctuation convention")
+        if not any(item["code"] == "em_dash_limit" for item in inspect(selected_style, "paper", em_dash_limit=2)["issues"]):
+            fail(errors, "prose checker lost the explicit punctuation limit")
+        if not any(item["code"] == "defensive_framing" for item in inspect(selected_style + " We do not claim to solve all problems.", "paper", em_dash_limit="off")["issues"]):
+            fail(errors, "punctuation override disables unrelated prose diagnostics")
+        for selected_limit, expected_code in (("off", 0), ("4", 0), ("2", 1), ("-1", 2), ("unknown", 2)):
+            cli = subprocess.run([sys.executable, str(path), "--scope", "paper", "--format", "json", "--strict", "--em-dash-limit", selected_limit], input=selected_style, text=True, encoding="utf-8", capture_output=True)
+            if cli.returncode != expected_code:
+                fail(errors, f"prose CLI mishandles selected punctuation limit {selected_limit!r}")
 
         signal_codes = {"semicolon_cluster", "semicolon_density", "repeated_contrast"}
 
@@ -480,7 +514,8 @@ def check_prose_regressions(errors: list[str]) -> None:
             fail(errors, "prose checker lost its sufficiently sized English density signal")
         repeated = "We use local rather than global states; we keep recent rather than all records; we read current rather than future inputs; we predict labels."
         chinese = "我们读取状态而不是标签。我们使用局部而非全局记录。这里不是未来信息而是当前观测。"
-        for text in (repeated, chinese):
+        repeated_biqi = "比起更多数据，我们重视质量。相比更多模块，我们重视机制。相较更多实验，我们重视解释。"
+        for text in (repeated, chinese, repeated_biqi):
             matches = [item for item in signals(text) if item["code"] == "repeated_contrast"]
             if len(matches) != 1 or matches[0]["count"] != 3 or matches[0]["severity"] != "advisory":
                 fail(errors, "prose checker missed repeated bilingual contrast framing")
@@ -522,6 +557,16 @@ def check_review_regressions(errors: list[str]) -> None:
         }
         if validate(sample):
             fail(errors, "review validator rejects progress that remains below readiness")
+        for value in (True, float("inf"), float("nan")):
+            for field in ("criterion", "overall"):
+                invalid_number = copy.deepcopy(sample)
+                readiness = invalid_number["absolute_readiness_scorecard"]
+                if field == "criterion":
+                    readiness["current_dimension_scores"]["soundness"] = value
+                else:
+                    readiness["overall_score"] = value
+                if not validate(invalid_number):
+                    fail(errors, f"review validator accepts a boolean/nonfinite readiness {field}")
         missing = copy.deepcopy(sample)
         del missing["absolute_readiness_scorecard"]
         if not validate(missing):
@@ -534,6 +579,36 @@ def check_review_regressions(errors: list[str]) -> None:
         regression["issues"] = [issue]
         if validate(regression):
             fail(errors, "review validator rejects a traceable current-version regression")
+        for original, wrong_class in ((sample, "regressed"), (regression, "improved")):
+            mislabeled = copy.deepcopy(original)
+            mislabeled["relative_progress_scorecard"]["classification"] = wrong_class
+            if not validate(mislabeled):
+                fail(errors, "review validator accepts a progress classification opposite to its delta")
+        unchanged = copy.deepcopy(sample)
+        unchanged["relative_progress_scorecard"].update(current={"soundness": 2}, deltas={"soundness": 0}, weighted_delta=0, classification="unchanged")
+        if validate(unchanged):
+            fail(errors, "review validator rejects unchanged scores under legacy thresholds")
+        unchanged["relative_progress_scorecard"]["classification"] = "improved"
+        if not validate(unchanged):
+            fail(errors, "review validator accepts unchanged scores labeled improved")
+        for delta in (-0.25, 0.25):
+            neutral = copy.deepcopy(regression if delta < 0 else sample)
+            neutral["contract"]["thresholds"].update(regressed_below=-0.25, improved_above=0.25)
+            neutral["relative_progress_scorecard"].update(historical={"soundness": 3}, current={"soundness": 3 + delta}, deltas={"soundness": delta}, weighted_delta=delta, classification="unchanged")
+            if validate(neutral):
+                fail(errors, "review validator rejects a frozen neutral-band boundary")
+            neutral["relative_progress_scorecard"]["classification"] = "regressed" if delta < 0 else "improved"
+            if not validate(neutral):
+                fail(errors, "review validator ignores the declared progress thresholds")
+            outside = copy.deepcopy(neutral)
+            outside["relative_progress_scorecard"].update(current={"soundness": 3 + 2 * delta}, deltas={"soundness": 2 * delta}, weighted_delta=2 * delta)
+            if validate(outside):
+                fail(errors, "review validator rejects progress outside a frozen neutral band")
+        for thresholds in ({"improved_above": "0.25"}, {"improved_above": float("nan")}, {"improved_above": True}, {"improved_above": -0.25}, {"regressed_below": 0.25}):
+            invalid_threshold = copy.deepcopy(sample)
+            invalid_threshold["contract"]["thresholds"].update(thresholds)
+            if not validate(invalid_threshold):
+                fail(errors, "review validator accepts an invalid progress threshold")
         issue["origin"] = "previously_undetected"
         if not validate(regression):
             fail(errors, "review validator penalizes only the current version for a latent shared issue")
@@ -612,6 +687,8 @@ Status: unresolved
             chinese_fields = chinese_fields.replace(f"{label}:", f"**{chinese}：**")
         comparison_confidence = report(mode="version-comparison").replace(" | **Scholarly Confidence:** 4", "").replace(
             "Separate evidence coverage.", "**Scholarly Confidence:** 4\nSeparate evidence coverage.")
+        compound_findings = "\n".join(finding.replace("C001", identity) for identity in ("R1-C1", "R1-C2", "AC-C1"))
+        compound_report = good.replace(finding, compound_findings).replace("[C001]", "[R1-C1], [R1-C2]; [AC-C1]。")
         valid_profiles = [
             (good, {}), (report(mode="full"), {"mode": "full"}),
             (report(chinese=True), {}),
@@ -626,6 +703,7 @@ Status: unresolved
             (comparison_confidence, {"mode": "version-comparison"}),
             (report(mode="version-comparison", detail="brief"), {"mode": "version-comparison", "detail": "brief"}),
             (good.replace("C001", "R1"), {}),
+            (compound_report, {}),
             (good.replace("# Review fixture", "# Review fixture\n\n```text\n## 99. Quoted heading\n[C999]\n```\n> [C998]"), {}),
             (good.replace("| Novelty | 4 |", "| Originality | 3.5 |"), {"rubric": "external"}),
         ]
@@ -640,6 +718,8 @@ Status: unresolved
             "empty section": good.replace("## 3. Desk Rejection Assessment\n\nScope-specific structural fixture; see [C001].", "## 3. Desk Rejection Assessment"),
             "undefined ID": good + "\nSee [C999].\n",
             "duplicate ID": good.replace(finding, finding + "\n" + finding),
+            "undefined compound ID": good.replace("C001", "R1-C1") + "\nSee [R1-C99].\n",
+            "duplicate compound ID": compound_report.replace("R1-C2", "R1-C1"),
             "missing evidence field": good.replace("Evidence: The claim has two possible readings.\n", ""),
             "unsupported finding type": good.replace("Type: clarification", "Type: definitely_wrong"),
             "invalid severity": good.replace("Severity: major", "Severity: severe"),

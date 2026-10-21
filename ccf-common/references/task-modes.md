@@ -27,7 +27,7 @@ Run enough checks to avoid fabrication and obvious dead ends, but do not apply s
 - rebuttal plans, TeX files, or multi-reviewer responses,
 - substantial multi-deliverable workflows; a small artifact remains quick even if another skill will later read it.
 
-Run the skill's full mandatory checklist internally. Surface skipped items only when the user asked for an audit, the task is review-related, or the omission changes the reliability of the answer.
+Complete the checks applicable to the requested deliverable and its evidence stage. A reference template is not a requirement to run every research stage or fill every optional field. Surface an omitted check only when the user asked for an audit or it materially limits the judgment.
 
 **quick** is for narrow local work:
 
@@ -63,6 +63,8 @@ Choose by the active deliverable, without another intake or preference switch. W
 When executing a selected plan, writing supported prose, or applying a local repair, preserve the agreed scientific content. Reopen only the affected design decision when contrary evidence, a failed assumption, an unresolved material limitation, or an explicit innovation request makes exploration useful. A new thought does not reopen every finished stage. Local aesthetic or wording alternatives remain ordinary work within their brief.
 
 Converge when the requested options or artifact are complete and further work would not change the decision. For stagnation, use the progress test in [continuity.md](continuity.md): change the relevant hypothesis/input or identify the missing discriminator instead of repeating the same search, critique, or rewrite. A recovery state returns to the task's prior exploratory or execution phase; it does not permanently select the safest idea.
+
+An explicit autonomous-research request may alternate exploration and experimental execution within its agreed objective and budget. Follow the orchestrator's [research loop](../../ccf-pipeline-orchestrator/references/autonomous-research.md); a discarded candidate does not end the whole research task. This mode does not start during concept-only review, ordinary writing, or plan-only work, and is distinct from optional skill-maintenance evolution.
 
 ## Output Flexibility
 
@@ -125,7 +127,7 @@ For a revision, inspect the changed passage, panel, data series, or issue plus i
 
 When durable context is needed, reuse an authorized report/state before creating the optional compact continuity record. After compaction, reconcile the current goal and affected actual artifacts; distinguish proposed, executed, and verified work. Do not re-extract or rescore unchanged inputs by default. Keep generated files under `artifact-contracts.md`; token reduction must not create a second uncontrolled set of context files. Return file links and a concise change report when files are the deliverable, unless the user also requests the full content in the conversation.
 
-Batch independent read-only searches and checks when the host supports it. For actual subagents, apply [delegation and integration](handoff-modes.md#actual-multi-agent-execution): split by evidence dependencies, preserve one integrating owner, and keep shared-file writes sequential. Skill loading or single-pass role perspectives do not create independent agents. Small local edits need no delegation.
+Batch independent read-only searches and checks when the host supports it. For actual subagents, apply [delegation and integration](handoff-modes.md#actual-multi-agent-execution): assign complete questions with ready inputs, keep tightly connected decisions under one owner, and serialize shared-file writes. Preserve the argument across skills; required specialist guidance does not require a separate agent. Small local edits need no delegation.
 
 Validate the requested outcome and changed paths. After relevant checks pass, repeat them only for a new change, failure, or unresolved concern. A missing tool limits the dependent verification, not unrelated authorized work. Distinguish not checked from failed. Do not fabricate verification or claim a running background task unless a real scheduler or job exists.
 
