@@ -21,3 +21,4 @@ jobs:
           head: main         # The branch in the original repo you are pulling from
           owner: mikubaka88
           repo: CCFA-Skills
+          auto_merge: false  # Avoid merge API permission failures; open PR for manual merge
