@@ -13,7 +13,24 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      - name: Detect existing sync PR
+        id: existing-sync-pr
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const openPrs = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              base: 'main',
+              head: 'mikubaka88:main',
+              per_page: 100
+            });
+            core.setOutput('skip', openPrs.length > 0 ? 'true' : 'false');
+            core.info(openPrs.length > 0 ? `Sync PR already exists: #${openPrs[0].number}` : 'No open sync PR found.');
       - name: Sync upstream changes
+        if: steps.existing-sync-pr.outputs.skip != 'true'
         uses: tgymnich/fork-sync@v2.0.10
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
