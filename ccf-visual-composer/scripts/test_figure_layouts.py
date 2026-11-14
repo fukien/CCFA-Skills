@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check scientific linkage, actual axes alignment and editable export."""
+"""Check numerical linkage, actual axes alignment and requested exports."""
 from __future__ import annotations
 
 import copy
@@ -25,6 +25,7 @@ import ccfa_figure_layouts as layouts
 class LinkedLayoutTests(unittest.TestCase):
     def tearDown(self):
         plt.close("all")
+
 
     def joint(self):
         return {"x":[0,.5,1,2],"y":[4,2,1,0],"bin_edges_x":[0,1,2],
@@ -227,7 +228,7 @@ class LinkedLayoutTests(unittest.TestCase):
                     qa=p.audit_figure(fig)
                     self.assertEqual(qa["missing_glyphs"],[])
                     self.assertEqual(qa["text_outside_canvas"],[])
-                    outputs=p.save_figure(fig,Path(folder)/kind)
+                    outputs=p.save_figure(fig,Path(folder)/kind,formats=("svg","pdf","png"))
                     self.assertTrue(outputs["svg"].exists() and outputs["pdf"].exists() and outputs["png"].exists())
                     self.assertIn("<text",outputs["svg"].read_text(encoding="utf-8"))
                     self.assertFalse([w for w in caught if "Glyph" in str(w.message)])

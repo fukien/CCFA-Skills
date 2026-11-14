@@ -1,105 +1,63 @@
-# Scientific Architecture Diagram Generation
+# Scientific Diagram Generation And Refinement
 
-Use this reference for new method, model, system, framework, dataflow, or training/inference diagrams, and the relevant reconstruction sections for editable delivery. Numerical plots stay code- and data-reproducible. Updating an existing editable source does not require a new image-generation pass.
+Use GPT Image for an entire new or redrawn scientific method, architecture, flow or conceptual figure. Numerical analysis uses Python; existing-figure edits remain scoped to the current image/source. The entrypoint defines those boundaries. This reference supplies the prompt and attachment details, without a vector skeleton, shape reconstruction or component-assembly route.
 
-## 1. One Diagram Specification
+## Before Stage 1: Understand The Scientific Task
 
-Reuse the visual contract or source specification. Extract only supported method content, without producing a second overlapping document:
+Read the relevant method/caption, user requirements and useful authorized references. Establish what the reader should understand, the figure's scope, necessary objects and actual relationships, and its destination/font. Reuse current context; no separate brief, approval, report, agent or image call is required.
 
-```text
-Purpose and scientific takeaway:
-Final size / destination / requested formats:
-Inputs, representations, operators, and outputs:
-Modules, groups, branches, merges, and typed connections:
-Training/inference boundaries, supervision, and iteration:
-Contribution emphasis and evidence-backed encodings:
-Exact short labels, equations, and acronym handling:
-Reading path / layout / existing assets:
-Design canvas, panel bounds, alignment anchors, and spacing tokens:
-Primary font, final-size label scale, and illustration treatment:
-Source locations and unresolved scientific information:
-```
+Separate observed inputs, estimated representations and inaccessible latent/ground-truth states. A causal equation explaining observations is not automatically an executable pipeline. Preserve supplied optional inputs, branches, train/inference distinctions and supervision. For an incomplete method, use the supported overview if sufficient, or ask about the missing mechanism needed by the requested scope. Do not invent conventional encoders, memory updates, retrieval steps or results to complete it. Repair only unambiguous notation damage.
 
-Resolve an unknown before drawing only when it changes topology or meaning. Make routine visual choices from context. Never add components to balance a composition. Keep canonical acronym expansions from the source; otherwise use the acronym alone. Long explanations belong in the caption, not inside the figure.
+Give each reference a role: scientific content, composition, object appearance, typography or color. Use the actual image when authorized; an absent reference is not an attachment. An appearance reference supplies no new scientific facts. Preserve source credits in the current record when useful; do not transplant unrelated labels, claims or artwork.
 
-## 2. Content-Fit Visual Grammar
+A paper figure explains its mechanism through concrete objects, transformations and meaningful connections, with short labels and an external caption. A slide, poster or outreach overview can use larger headings and explanatory callouts when that is the requested destination. Choose visual treatment from the actual task, not a fixed layout or conference stereotype.
 
-For a paper, apply `paper-vs-presentation-diagrams.md`: show scientific objects and computations instead of explanatory stage cards. Use presentation or outreach grammar when that is the destination.
+## 1. Expand The Understanding Into Prompt P
 
-| Topology | Suitable layout |
-| --- | --- |
-| Sequential stages | Compact aligned flow; place a local expansion beside its parent operation instead of extending the whole canvas. |
-| Hierarchy | Nested semantic groups with explicit containment. |
-| Multiple branches/modalities | Aligned lanes with shared entry/exit anchors, consistent label baselines, and the actual integration point. |
-| Iteration or agents | State, loop direction, stop condition, and feedback edge. |
-| Training versus inference | Clearly distinguished paths; no inference-time training supervision. |
-| Retrieval or memory | Query, storage/index, retrieved content, and consuming operator. |
-| Before/after or baseline/proposed | Matched common geometry, emphasizing the changed mechanism. |
-
-Use representations, tensors, graphs, frames, or trajectories only when grounded in the method. Load `reference-layout-blueprint.md` only for actual reference-based composition. Reuse established layout and style for an update.
-
-For a new design, choose one applicable preset from `adaptive-architecture-style.md`. Allocate compact panel areas after establishing the final-size type scale. Keep scientific node/edge relationships separate from presentation groups: visual adjacency is not a connection, and a detail inset is not a repeated execution. Check whole-figure occupied bounds before asking the image model to elaborate objects.
-
-## 3. Prompt Specificity
-
-For a detailed user prompt, preserve it and append only genuinely missing refinement. Follow `adaptive-architecture-style.md`: local edits need a delta; a layout redesign needs sufficient geometry and typography, without an arbitrary word ceiling. A partial prompt needs missing scientific relationships or output constraints; manuscript-only input needs a content-derived prompt. Resolve the layout and font tokens from `visual-contract.md` once, then include their chosen values rather than the whole reference document.
-
-Use the following compact structure for a new prompt, merging empty or redundant blocks:
+Preserve a good user prompt and add only missing information. Otherwise use the useful parts of this structure; short tasks can merge the headings:
 
 ```text
-OUTPUT: Destination, final size/aspect ratio, background, and scientific takeaway.
-REFERENCES: Input image order and role; observed layout relationships to retain or adapt.
-STRUCTURE: Supported modules, representations, operations, reading order, and groups.
-CONNECTIONS: Exact source/target relationships, directions, and semantic line types.
-LAYOUT: Content-fit aspect ratio, nominal canvas, compact panel bounds, shared baselines/edges across blocks, chosen gaps, padding, icon slots, and reserved connector lanes.
-ENCODING: Contribution emphasis, training/inference distinctions, semantic palette roles with hex values.
-TEXT: Only the quoted visible-label inventory and necessary equations; exact primary font, final-size label scale, weight, and placement.
-ILLUSTRATIONS: Scientific objects, viewpoint, coherent detail/material treatment, and invariants across repeated assets; keep them inside the planned slots.
-CONSTRAINTS: Preserve the specified science; no invented components, metrics, equations, or acronym expansions; no watermarks, illegible microtext, or decorative flows.
+PURPOSE: Draw [figure role/scope] so the reader understands [scientific message].
+CONTENT: [Supported observed inputs -> operations/representations -> outputs, essential branches, exact short labels and needed equations. Distinguish estimated/latent/optional quantities where relevant.]
+REFERENCES: [Article figure/section] supplies the science; [reference image] guides [composition, object appearance or palette]. Adapt its visual organization to this method.
+APPEARANCE: Compact, information-rich figure for [actual slot/destination], with aligned related groups, short clear connections and recognizable scientific objects. Use [chosen font], differentiated heading/body hierarchy and [chosen semantic colors if useful]. Keep local breathing room, minimal wasted margins and short labels; leave caption prose outside the image.
+DELIVERY: Crisp high-resolution PNG, readable at the intended paper/display size.
 ```
 
-Use natural sentence/title case for ordinary text and preserve canonical uppercase acronyms. Do not render prompt headings, spacing measurements, explanatory prose, or extra numbers as figure labels. Treat coordinates as generation targets, not proof of exact geometry. Allow visual invention in faithful scientific objects and local detail while keeping labels, topology, positions, and palette roles stable. Do not repeat the same inventory in several blocks. Preserve user-required wording and image-tool input requirements.
+Let the image model choose detailed positions, sizes, proportions and illustrations. Do not append a generic style manifesto, pixel table, fixed grid or list of every preset. Apply exact spacing only if it is an actual user requirement, as an image target rather than coordinate construction. Keep required terminology and canonical acronym expansions; do not invent expansions or abbreviate away meaning.
 
-## 4. Authorized Default Generation
+Use Times New Roman by default, selected Comic Sans MS or the user's/destination's requirement. Key headings are bold; body labels and equations remain subordinate. Quantitative titles, axes, ticks and legends retain their requested boldness and readable size differences. Mathematical variables can be italic, with upright units and descriptive text. Panel letters support navigation rather than overpowering the subject.
 
-For a new architecture concept, use the authorized host image-generation capability unless the user requests pure SVG/code-first or opts out. Follow the host image-generation instructions. Name the backend as GPT Image 2 only when its identity is verified; an undisclosed model name does not block an otherwise available, authorized generation. If image generation is unavailable, use an already authorized alternative or explain the missing capability and retain the usable specification.
+Keep scientific objects coherent in viewpoint, detail and identity: image strips, masks, rays, camera poses, tokens or graphs should explain the supplied transformation. Generate them within the complete composition. Supplied assets can guide the result; a vector icon pack or a separate asset-generation pass is not a prerequisite. A separately requested isolated raster object can use the host image workflow with transparency when needed, preserving source/license/credit for reused assets.
 
-A diagram request authorizes its necessary generation stage. Show a brief diagram summary when useful; do not repeat the full outbound prompt in chat unless requested or needed for approval/provenance. For private content, follow `../../ccf-common/references/privacy-and-evidence.md`: minimize inputs to required structure and use only authorized references. Ask about the exact minimized prompt and images only when transfer crosses an unapproved boundary. Do not send the full manuscript or unrelated identities, reviews, source trees, or result files.
+Use one semantic color map, light fills and darker same-hue borders where appropriate. Preserve approved template mappings and actual image/depth scales. Optional colors and conditional line/band conventions are in [palette-and-accessibility.md](palette-and-accessibility.md); style does not create a comparator, threshold or uncertainty interval. A crisp, vector-like appearance remains a PNG quality target.
 
-Generate one complete candidate by default. Requested alternatives or Common's applicable `figure_variants` preference reuse the same verified specification and assets, changing a meaningful composition choice. An existing source change, additional export, or local edit does not restart this concept stage.
+## 2. Generate G0 From P, References And Article Material
 
-Use the requested or content-derived aspect ratio and an adequate canvas when the host exposes size controls. Do not default to 1:1 or to a single landscape size. The 1536 px width in the spacing guide is a scaling reference, not an aspect-ratio requirement. When quality controls are exposed, use medium/high for a detailed final diagram; low is appropriate for an explicitly rough composition check. Do not invent unavailable tool parameters. GPT Image 2 already uses high input fidelity; do not pass an unsupported `input_fidelity` option. Follow current host capabilities for transparency and dimensions.
+Actually call GPT Image. Attach relevant reference images and article figure/pages, identifying their order and roles in the tool envelope. Include the necessary method content in P. If the tool cannot attach a PDF, use the relevant page/figure images and factual content; omit unrelated pages and minimize private material within the established authorization.
 
-## 5. Inspect And Correct The Draft
+Generate one complete composition using the host's supported operation and parameters. If the required image capability fails or is unavailable, retain the useful prompt/draft and report that specific failure; do not substitute code or vector construction. A prepared prompt is not an executed generation.
 
-Use the single integrated inspection in `render-qa.md`, separating scientific correctness from visual quality. Check topology, label inventory, and equations before judging hierarchy, spacing, illustrations, and final-size readability. A beautiful image does not settle a scientific mismatch; a scientifically correct layout can still need visual repair.
+## 3. Refine G0 With The Same P Into G1
 
-Turn each actual defect into a local edit: identify the region/object, describe what is wrong, specify the change, and preserve accepted surrounding content. For example: align the three branch-output ports to the merge-column anchor while keeping edge directions and labels fixed. Raster-only delivery still requires repairing malformed text through the host image-editing workflow. Another candidate or independent reviewer is optional work governed by the effective preference or user request; basic inspection and necessary repairs always remain active.
+Inspect G0, then actually call GPT Image again with the same P and G0 as the edit target:
 
-If scientific composition is wrong, make a targeted correction to the prompt or image using the host workflow. If editable reconstruction is already requested and the composition is usable, repair labels, equations, alignment, and local geometry in the vector/native source instead of regenerating a whole raster to fix typography. Preserve accepted topology, layout, and reusable icons.
+```text
+ORIGINAL GOAL:
+[P, unchanged]
 
-After two unsuccessful corrections of the same defect, diagnose the failure and change the relevant strategy. For example, route a connector differently, separate true semantic groups, or rebuild malformed text in the requested editable source. Do not lower scientific accuracy, discard a requested format, or accept an unreadable figure to satisfy an attempt budget.
+EDIT THE ATTACHED DRAFT:
+The attached image is G0. Preserve its accepted composition, scientific objects, labels, equations, color identities and required connections. Refine [actual related issues in one pass]. Keep unaffected content fixed. Improve compact alignment and final-size readability where needed; return the refined PNG.
+```
 
-## 6. Requested Editable Deliverables
+The current image is the draft, not the article/reference; do not reuse attachment numbering from the generation envelope. Name real defects specifically, such as an incorrect merge or overlapping label. If none is identified, request restrained visual coordination/readability refinement while preserving content, without inventing a scientific error.
 
-If editable SVG, vector PDF, PPTX, or reconstruction was requested, continue without asking again. A later local correction preserves that format request. When reconstruction is additional work beyond a raster-only request, offer it once after delivering the raster and wait only for that optional work.
+Preparation uses the current assistant; generation and refinement are **two actual image-tool calls for one candidate**. `figure_variants=off` only disables additional candidates and cannot skip refinement. Existing-image local edits do not restart this workflow unless the user requests a new composition or complete redraw.
 
-Create only requested formats and the minimum reusable source needed for them. Follow `../../ccf-common/references/artifact-contracts.md`: one stable working directory per figure, one current source/specification, reusable assets, and current build preview. Preserve explicit existing paths; do not save parallel contract/prompt/inventory files with repeated content.
+Inspect G1 at its final intended size for the necessary source-to-target paths, directions, labels/equations, compactness and visual quality. Proximity does not establish a connection. Correct any surviving material defect through a bounded image edit and inspect affected dependencies. Repeated failures require a better representation/instruction, not more blind nudges or a vector fallback.
 
-## 7. Semantic Reconstruction
+## Numerical Content And Delivery
 
-1. Rebuild modules as named selectable vector/native groups and typed connectors. Keep labels as live text matching the scientific inventory.
-2. Preserve equations as editable text where practical, or as separately replaceable vector objects with the limitation stated.
-3. Keep an unavoidable raster element isolated and identified. A full-image background, embedded raster, or noisy auto-trace is not semantic editability.
-4. Export requested vector PDF from the canonical vector source. Keep SVG as the editable source when it is the authoring format; downstream PDF editability depends on the editor.
-5. For PPTX, use `editable-pptx.md`: native layout/text/connectors, separately selectable icons, and honest native/SVG-convertible/raster editability. Reuse a supplied editable SVG when suitable instead of rebuilding its geometry from a preview.
-6. Preserve necessary reusable source and assets. Record provenance and element semantics in the existing source/specification; a separate manifest or element map is needed only when requested or required by a converter/package.
-7. For later changes, edit the canonical source, refresh dependent requested exports, and inspect the affected result. Retain the last usable artifact if a replacement fails; mark any export that is not current.
+Keep embedded quantitative marks, axes, labels and statistical definitions code-rendered. Compare them with the original numerical export after any image operation; do not repaint measurements or invent bands. Details of selected numerical templates and reference encodings belong to [figure-design-library.md](figure-design-library.md).
 
-Strict editability alone does not opt out of the default raster concept for a new architecture diagram. Explicit pure SVG/code-first uses deterministic generation immediately. These defaults do not force a new raster pass for an existing editable figure or a data-led analysis composition.
-
-## 8. Applicable QA
-
-Use the shared `render-qa.md` checks for the requested output only. A paper mechanism figure must expose its representations and computation; presentation decoration must not replace scientific structure. Confirm that all delivered formats communicate the same data, topology, labels, and hierarchy. Inspect vector/native editability for requested editable formats and actual rendered appearance at final size. A successful export or XML parse alone does not verify either scientific correctness or visual quality.
-
-Official capability and prompting references are registered in `../../ccf-common/references/source-registry.yaml` under `openai-image-generation-guide` and `openai-image-prompting-guide`. The CCFA layout tokens are working design defaults, not OpenAI guarantees.
+Deliver the final PNG. Requested PPTX/PDF placement preserves its raster nature and aspect ratio. Existing-source maintenance and placement checks are in [render-qa.md](render-qa.md); do not reconstruct a raster into editable shapes. Keep one current P/source record when needed and one final PNG, reusing the tool-managed G0 for refinement rather than copying attempt histories. Follow Common's artifact contract and inspect only the affected output formats.

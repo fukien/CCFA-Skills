@@ -1,14 +1,59 @@
 # 数据分析图的设计与组合素材库
 
+论文单图优先按实际版面选取，通常从单栏约85–90 mm起稿。在同一坐标系统中组合有意义的位置、颜色、符号、面积和配对连线；需要局部细节时再加小型放大图。多面板只用于确有必要的不同问题或数据域。现有组合案例仍保留，`compose --panel <id>`可单独复用一个面板及其叠加图层，原数据、颜色身份和组合来源不变。
+
 先说清楚图要让读者发现什么，再选图法。一个均值差异、一个长尾问题和一次配对变化，需要的观察单位与布局并不相同。素材库按这些表达目的组织；会议和期刊只用于定位已检查的图例，不作为固定外观预设。
+
+## 已选模板：复用原规格，只换数据
+
+用户选中图库入口、命名模板、JSON或Python后，直接读取该规格和绘制实现。不要重新运行demo、换一个相似原语或凭缩略图重写。画布、字号、配色身份、图层与统计定义沿用所选规格；输入不兼容就解决具体字段，不默默换图。
+
+```bash
+python ccf-visual-composer/resources/python/ccfa_figure_library.py compose --spec selected.json --data supplied.json --out ccfa-workfiles/figures/analysis/build/figure
+```
+
+`replace_data(spec, supplied)`返回新规格，不改原文件。原生template/layout传入完整新data对象；普通面板组合传入`{"panels":[{"id":"panel-1","data":{...},"layers":[{"data":{...}}]}]}`，提供所有选中面板及叠加层。`compose --panel <id>`先提取目标面板，再绑定其新数据，不要求未选面板。CSV/TSV仍用已有table bindings修改源路径/列映射；不要混用半份原始JSON替换和旧表格绑定。
+
+展示参数与观测分开：颜色、点形、字号等可以继承，series按稳定method/label身份匹配；缺失的观测、范围或权重不能用旧demo补上。检查`_meta.retained_text_to_check`中的静态标题／说明是否仍符合新数据，按实际任务更新。demo来源元数据不冒充新数据来源。
+
+只有未选定设计的新任务才运行问题／数据路由。同分的可用设计可以随机选择；选定之后的渲染与修改保持该设计，不再抽样换图。
+
+`original:mechanism_overview`保留为“已批准的方法PNG＋数值分析”的混合模板：`data.mechanism.image`必须指向现有PNG，代码只放置原图，不从stage标签重建框和箭头。示例使用已有插图与明确标记的模拟分析；真实任务需换成当前方法图。
 
 ## 三层入口
 
 - `resources/figure-library/catalog.json`：43 种原语的表达目的、必需字段、选择理由，以及 16 种组合入口。先通过路由读少量候选，不把整个文件塞进上下文。
 - `resources/figure-library/studies.json`：78 张已检查图例的设计卡。每张说明原图布局、为什么这样设计、真实数据需要哪些字段、可以怎样融合及当前实现的适配范围。累计 75 张有直接视觉检查记录，3 张复用早期记录；本轮新增 25 张；复用情况单独标记。
-- `resources/python/ccfa_figure_library.py`：小路由、图例演示和组合器。调用已有 `ccfa_analysis_panels.py` 及新增 `ccfa_semantic_panels.py`；原来的九套 `ccfa_analysis_templates.py` 模板和纯 SVG 路线继续可用。
+- `resources/python/ccfa_figure_library.py`：小路由、图例演示和组合器。调用已有 `ccfa_analysis_panels.py` 及新增 `ccfa_semantic_panels.py`；原来的九套 `ccfa_analysis_templates.py` 数值模板继续可用；数值 SVG/PDF 仅按明确要求导出。
 
 设计卡使用 `source_id` 连接 Common 的来源登记，不重复收录论文 URL，也不附带原论文图片。这里复现的是**可用于新数据的分析关系与排版结构**，不是原论文的数值结果或逐像素图像。非直接支持的极坐标、三维示意、图像拼贴、生物结构注释等，逐卡在 `adaptation_notes` 说明如何转换或继续编辑。
+
+## 按绘制家族归并，按科学问题选择
+
+一张论文设计卡记录一种使用情境，不必占一个新的模板入口。导航分成**绘制家族 → 结构变体 → 科学情境**：先展示组合与代表图，同一绘制计划的网格、分面数量、其他论文、数据和配色放在家族内部；基础原语保留为编辑零件。原来的 ID、代码、来源和两个用户参考双面板均保留，可直接调用。
+
+家族比较有序绘制计划、统计编码、共享坐标关系、叠加层、轴变换和实际启用的分析元素。同一图法的 2／4／8 面板分面共享家族，网格、跨度、面板数量及比例保留为结构变体；单图与分面仍分开。混合图按其有序图法组织，同一图法连续重复的数量留在变体中。只更改数据、标题、类别名称或配色，则仍是同一个结构变体下的不同情境。普通箱体与 median–P90/P99/P95 汇总、普通密度与带权重走廊标注的密度图保持不同家族；同一数据的图形相似不能省掉统计解释。
+
+```bash
+python ccf-visual-composer/resources/python/ccfa_figure_library.py families
+python ccf-visual-composer/resources/python/ccfa_figure_library.py families --member reference:sensitivity-pair
+```
+
+`route` 先检查当前文章的问题和数据，再给出每个家族的一个候选；同分时保留现有随机选择，不要求固定种子，也不生成额外图稿。`studies` 和 `examples` 仍能查到所有使用情境。候选中的 `family_id` 对应声明的基础结构；实际输入启用了区间、叠层或注释后，应按最终规格重新归类。
+
+整理已有图库时可直接传实际规格，不读取全部论文或重新模拟数据：
+
+```python
+from ccfa_figure_library import families, family_for_spec
+
+# entries 是已有图卡列表；specs 按图卡 ID 提供已读取的组合 JSON。
+index = families(entries, specs=specs)
+identity = family_for_spec(specs[entries[0]["id"]])
+```
+
+`index["families"]` 提供代表图 ID、完整成员 ID、各成员情境、表达目的、`variant_count` 和 `variants`。`family_for_spec` 的 `id` 识别家族，`variant_id` 识别严格结构；`drawing_signature` 继续保留网格、面板数量、跨度与完整共享坐标结构。家族的 `family_signature` 表达可复用计划，各变体的 `signature` 保留实际结构，可用 `families --variant <variant-id>` 查询。合并只发生在导航层，不丢失原始数据，不把一张示意图当作另一篇论文的完整复现。缺少规格的旧 SVG 保持独立入口，不能凭缩略图外形自动判定相同。
+
+维护标准示例时，`examples.json` 可用紧凑的 `drawing_options` 声明默认启用的元素：例如对数轴、带权重走廊、median–P90 汇总、独立采样横坐标、轮廓柱、标注及给定区间。这里的 `true` 只表示元素存在，不是实测值，也不能直接当作绘图数据。标准家族索引据此识别参考图的完整结构，无需导入 NumPy／Matplotlib 或生成样本；真正渲染仍使用实际数据或显式请求的演示数据。参考双面板的签名只读取会绘制的那一半，另一半的调整不制造重复家族。默认演示改变分析元素后，维护测试对照原生演示与声明的签名，避免目录又退回只登记外框。
 
 ## 按表达目的找图
 
@@ -78,7 +123,7 @@ python ccf-visual-composer/resources/python/ccfa_figure_library.py reproduce acl
 python ccf-visual-composer/resources/python/ccfa_figure_library.py demo --fusion response_slices --out ccfa-workfiles/figures/response-slices/figure
 ```
 
-生成的 Python 源、图稿和元数据保存在同一具名图稿目录；后续更新同一文件。Python 源含明确的 `SPEC`，可以替换输入、改面板跨度、标题、尺寸和配色后再次导出。共享模块在同一解压目录树或仓库中时，生成源会自行找到它；其他项目可将 `ccf-visual-composer/resources/python` 加入 Python 导入路径。
+默认生成 PNG、Python 源和元数据，不自动导出 SVG；PDF/SVG 需显式指定 `--formats`。数值图的可编辑请求需按其真实源码／对象能力交付，不能把 Python 可复现或 PDF 可缩放等同于 PowerPoint 对象可编辑；新方法图放入 PPTX 仍是位图。文件保存在同一具名图稿目录；后续更新同一文件。Python 源含明确的 `SPEC`，可以替换输入、改面板跨度、标题、尺寸和配色后再次导出。共享模块在同一解压目录树或仓库中时，生成源会自行找到它；其他项目可将 `ccf-visual-composer/resources/python` 加入 Python 导入路径。
 
 真实作图不加 `--demo`，传入包含实际数据的组合规范：
 
@@ -166,6 +211,22 @@ python ccf-visual-composer/resources/python/ccfa_figure_library.py route --brief
 python ccf-visual-composer/resources/python/ccfa_figure_library.py layout matrix_slices --demo --out ccfa-workfiles/figures/response-slices/build/figure
 ```
 
+## 参考分析图的完整编码
+
+指定参考图不仅是一种外框。使用 `sensitivity_dynamics`、`reference:sensitivity-pair` 或 `reference:dynamics-pair` 时，保留实际提供的分析元素：
+
+| 参考元素 | 保留的含义与输入 |
+| --- | --- |
+| 对数距离密度与计数色条 | 实际轴变换、log-count归一化、计数范围和单位。 |
+| 双阈值走廊 | 两个边界及交集；状态份额用完整人群分母，加权份额只由实际权重计算。 |
+| median–P90箱、P99须、P95菱形 | 明确的分位数，不换成普通IQR箱、1.5-IQR须或均值；使用原始样本或完整给定分位数。 |
+| 独立采样步的多条曲线 | 各系列保留自身横坐标，不补不存在的起始观测。 |
+| 轮廓柱与同单位曲线 | 保留类别身份、百分比定义和色形；范围仅来自给定上下界，稀疏标注不重复全部数值。 |
+
+实现支持 `density.corridor={x_max,y_max,weights?,label?,annotation_xy?}`、密度轴与计数色条参数；敏感度块支持 `summary={median,p90,p95,p99}` 或 `summary_mode="median_p90"` 和实际样本。动态系列保留自身 `x`；类别块支持 `bar_style="outlined"`、`bar_labels`、`label_wrap`、给定区间及选定标注。标签换行只改显示，不改实体顺序。具体参数只读当前所用模板，不加载所有卡。
+
+这两组用户参考示例和原始案例继续保留。使用冻结的模拟输入看版式，真实任务替换完整数据；缺少权重、区间或采样点时不伪造，按所需科学范围解决输入。
+
 ## 原示例继续保留
 
 [完整示例表](figure-examples.md)列出原九套模板、指定参考双面板、论文设计卡与融合布局。旧例是后续改进的起点，新增功能不会将它们从表中挤掉：
@@ -208,3 +269,13 @@ python ccf-visual-composer/resources/python/ccfa_figure_library.py record --hist
 2025、2026 年的官方会议目录和 NMI 出版登记用于发现候选；Nature 主刊与 Nature Methods 的 AI 论文另记精选范围。目录元数据的完整程度在素材库 `resources/figure-library/corpus.json` 中逐集合记录，不能等同于每篇论文的每幅图均已阅读或复现。
 
 当前 78 卡是已检查、去重后可复用的设计起点。先从相关表达目的查少量卡，必要时查其 `source_id` 和原图；不在每次作图时重搜所有会议或全量加载素材库。后续扩展复用相同字段、来源登记和原语，给已有卡增加有用变体，而不为同一种图复制几十份近似 Python 文件。
+
+## 输入数据与图类型分别检索
+
+素材库保留两个独立分类：输入类型包括二维观测、分组/配对样本、有序序列、估计与区间、分位数摘要、分箱计数、类别多指标、矩阵、空间坐标和组成数据；图类型包括曲线、柱形、区间、分布、二维密度、散点、热图、组成和轨迹。同一复合图可以有多个图类型标签。
+
+```bash
+python ccf-visual-composer/resources/python/ccfa_figure_library.py route category_comparison --input-type category_series --chart-type bar --fields labels bars series series.lower series.upper annotate
+```
+
+路由返回 `element_plan`，说明已有分析要素和哪些给定字段可增加范围、条件区域、加权份额或关键数值。`describe_plot`按实际内容识别数据类型，避免把汇总分位数当成原始样本。图库默认优先展示多元素分析，基础图法仍可作为拼装部件查看。复杂度标签是浏览提示，不是科研价值评分。

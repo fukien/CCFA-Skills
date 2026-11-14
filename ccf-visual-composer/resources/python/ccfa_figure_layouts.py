@@ -20,6 +20,8 @@ import ccfa_analysis_panels as p
 from ccfa_plot_recipes import PALETTES
 
 
+
+
 def _vector(values, name):
     return p._vector(values, name)
 
@@ -66,7 +68,7 @@ def _range(value, observed, name):
 
 def _meta(fig, kind, axes, computed):
     fig.ccfa_layout = {"kind": kind, "axes": axes, "computed": computed}
-    return fig
+    return p.finish_paper_style(fig)
 
 
 def _bin_counts(values, edges, name):
@@ -365,7 +367,7 @@ def render_layout(kind, data, *, width_mm=183, height_mm=None, font="serif", pal
                 import matplotlib.pyplot as plt
                 plt.close(fig)
             raise
-    return fig
+    return p.finish_paper_style(fig)
 
 
 def demo_data(kind, seed=None):
