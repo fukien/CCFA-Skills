@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Route scientific questions to editable charts; compose only supplied data.
+"""Route scientific questions to PNG charts; compose only supplied data.
 
 Routing and catalog lookup need only the standard library. Plotting imports
 NumPy/Matplotlib on demand. Example data requires an explicit demo command.
@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import copy
 from functools import lru_cache
+import hashlib
 import inspect
 import json
 import math
@@ -42,6 +43,334 @@ def explain(kind):
         if item["id"] == kind:
             return copy.deepcopy(item)
     raise ValueError(f"Unknown chart: {kind}")
+
+
+# Equivalent drawing machinery shares navigation, while each member retains its
+# scientific field contract. Optional features below keep material variants apart.
+_DRAWING_GRAMMAR = {
+    "comparison_intervals": "point_intervals", "forest_intervals": "point_intervals",
+    "ranked_intervals": "point_intervals", "matrix_heatmap": "cell_matrix",
+    "transition_matrix": "cell_matrix", "dot_matrix": "bubble_matrix",
+    "matrix_bubbles": "bubble_matrix", "pareto_scatter": "pareto_frontier",
+    "cost_quality_frontier": "pareto_frontier",
+}
+_STRUCTURAL_KEYS = {"xscale", "yscale", "scale", "normalization", "paired",
+                    "orientation", "quantile", "whisker_quantile", "box_quantiles",
+                    "summary_kind", "summary_mode", "panel_pair", "order", "mode", "statistic",
+                    "bar_style", "linestyle", "marker"}
+_FEATURE_FIELDS = {
+    "interval": ("lower", "upper"), "given_quantiles": ("quantiles",),
+    "raw_runs": ("runs",), "censored": ("censored",),
+    "corridor": ("corridor",), "threshold": ("threshold",),
+    "weights": ("weights",), "value_labels": ("value_labels",),
+    "annotations": ("annotations",), "color_values": ("color_values",),
+    "filled_series": ("fill_method",), "sample_labels": ("annotate_labels",),
+    "given_summary": ("summary",), "point_labels": ("annotate",),
+    "bar_labels": ("bar_labels",), "explicit_colorbar_ticks": ("colorbar_ticks",),
+    "log_count_range": ("count_range",),
+}
+
+
+def _drawing_options(data):
+    """Retain encoded relationships, never an observation or its label text."""
+    if not isinstance(data, dict):
+        return {}
+    result = {}
+    for key in sorted(_STRUCTURAL_KEYS & data.keys()):
+        value = data[key]
+        # These are protocol/encoding selectors, not arbitrary nested records.
+        if key in {"xscale", "yscale", "scale"} and value == "linear":
+            continue
+        if key == "panel_pair" and value == "all":
+            continue
+        if key == "order" and value == "input":
+            continue
+        if isinstance(value, (str, bool)) or value is None:
+            result[key] = value
+        elif key in {"quantile", "whisker_quantile", "box_quantiles"}:
+            result[key] = _plain(value)
+    def present(value):
+        return value is not None and value is not False and not (isinstance(value, (list, tuple, dict, str)) and len(value) == 0)
+    for name, fields in _FEATURE_FIELDS.items():
+        if all(key in data and present(data[key]) for key in fields):
+            result[name] = True
+    if "corridor" in result:
+        corridor = data.get("corridor")
+        if isinstance(corridor, dict):
+            result["corridor_fields"] = sorted(key for key in corridor
+                if key not in {"label", "text", "color", "alpha", "annotation_xy"})
+    if isinstance(data.get("summary"), dict):
+        result["summary_fields"] = sorted(data["summary"])
+    if "quantiles" in data and isinstance(data.get("probabilities"), list):
+        result["quantile_levels"] = _plain(data["probabilities"])
+    # Templates keep nested blocks separate. Numeric data, category names,
+    # palette choices and exact thresholds cannot create duplicate families.
+    blocks = {key: _drawing_options(value) for key, value in data.items()
+              if isinstance(value, dict) and not key.startswith("_")}
+    blocks = {key: value for key, value in blocks.items() if value}
+    if blocks:
+        result["blocks"] = blocks
+    if isinstance(data.get("series"), list):
+        options = []
+        for row in data["series"]:
+            if not isinstance(row, dict):
+                continue
+            option = _drawing_options(row)
+            if row.get("x") is not None:
+                option["independent_x"] = True
+            options.append(option)
+        if any(options):
+            unique = {json.dumps(row, sort_keys=True): row for row in options}
+            result["series_options"] = [unique[key] for key in sorted(unique)]
+    return result
+
+
+def drawing_signature(spec):
+    """Return the drawing structure used to merge equivalent gallery entries.
+
+    No plotting dependency, data generation, source inspection or network call
+    occurs. Equal signatures mean equivalent declared drawing structure, not
+    equal scientific questions or interchangeable datasets.
+    """
+    if not isinstance(spec, dict) or spec.get("version", 1) != 1 or isinstance(spec.get("version"), bool):
+        raise ValueError("A drawing signature needs a version-1 specification")
+    if "template" in spec or "layout" in spec:
+        kind = "template" if "template" in spec else "layout"
+        if not isinstance(spec[kind], str) or not spec[kind]:
+            raise ValueError("Specify an actual template or layout name")
+        data = spec.get("data", {})
+        if kind == "template" and spec[kind] == "sensitivity_dynamics":
+            pair = data.get("panel_pair", "all")
+            relevant = {"density", "sensitivity"} if pair == "sensitivity" else {"dynamics", "categories"} if pair == "dynamics" else None
+            if relevant is not None:
+                data = {key: value for key, value in data.items() if key in relevant | {"panel_pair"}}
+        return {"renderer": kind, "kind": spec[kind],
+                "options": _drawing_options(data)}
+    panels = spec.get("panels")
+    if not isinstance(panels, list) or not panels:
+        raise ValueError("A drawing signature needs panels, a template, or a layout")
+    ids = {panel.get("id"): i for i, panel in enumerate(panels)}
+    def node(panel):
+        if not isinstance(panel, dict) or not isinstance(panel.get("kind"), str):
+            raise ValueError("Each drawing node needs its renderer kind")
+        result = {"kind": _DRAWING_GRAMMAR.get(panel["kind"], panel["kind"]),
+                  "options": _drawing_options(panel.get("data", {}))}
+        data = panel.get("data", {})
+        if panel["kind"] in {"forest_intervals", "ranked_intervals"} and data.get("reference", 0) is not None:
+            result["options"]["reference_line"] = True
+        if panel["kind"] == "pareto_scatter" and data.get("annotate", True):
+            result["options"]["point_labels"] = True
+        if panel["kind"] in {"dot_matrix", "matrix_bubbles"}:
+            result["options"]["size_binding"] = "independent_measurement" if panel["kind"] == "dot_matrix" else "absolute_value"
+        for axis in ("xscale", "yscale"):
+            if panel.get(axis, "linear") != "linear":
+                result[axis] = panel[axis]
+        if panel.get("layers"):
+            result["layers"] = [node(layer) for layer in panel["layers"]]
+        if panel.get("style"):
+            style = _drawing_options(panel["style"])
+            if style:
+                result["style"] = style
+        if panel.get("colorbar") is False:
+            result["colorbar"] = False
+        return result
+    drawings = []
+    for i, panel in enumerate(panels):
+        item = node(panel)
+        item["position"] = [panel.get("row", 0), panel.get("column", i),
+                            panel.get("rowspan", 1), panel.get("colspan", 1)]
+        drawings.append(item)
+    shared = []
+    for group in spec.get("shared_axes", []):
+        members = group.get("panels", [])
+        shared.append({"axis": group.get("axis"),
+                       "panels": sorted(ids.get(value, value) for value in members)})
+    result = {"renderer": "panels", "rows": spec.get("rows", 1),
+            "columns": spec.get("columns", len(panels)), "panels": drawings,
+            "shared_axes": sorted(shared, key=lambda row: json.dumps(row, sort_keys=True))}
+    for key in ("width_ratios", "height_ratios"):
+        if spec.get(key) is not None:
+            result[key] = _plain(spec[key])
+    return result
+
+
+def _family_plan(signature):
+    """Reusable drawing machinery; multiplicity and placement remain variants."""
+    if signature["renderer"] != "panels":
+        return copy.deepcopy(signature)
+    nodes = [{key: value for key, value in row.items() if key != "position"}
+             for row in signature["panels"]]
+    def runs(rows):
+        result = []
+        for row in rows:
+            if not result or row != result[-1]:
+                result.append(copy.deepcopy(row))
+        return result
+    plans = runs(nodes)
+    mode = "single" if len(nodes) == 1 else "faceted" if len(plans) == 1 else "composition"
+    relations = []
+    for axis in ("x", "y"):
+        groups = [row for row in signature["shared_axes"] if row["axis"] == axis]
+        if not groups:
+            continue
+        covered = {index for row in groups for index in row["panels"]}
+        all_indices = set(range(len(nodes)))
+        relation = ("all" if any(set(row["panels"]) == all_indices for row in groups)
+                    else "partitioned" if covered == all_indices else "partial")
+        shared_plans = []
+        for row in groups:
+            group_plan = runs([nodes[index] for index in row["panels"]])
+            if group_plan not in shared_plans:
+                shared_plans.append(group_plan)
+        relations.append({"axis": axis, "relationship": relation, "plans": shared_plans})
+    return {"renderer": "panels", "mode": mode, "plans": plans, "shared_relations": relations}
+
+
+def family_for_spec(spec):
+    """Identify a reusable family and a strict structural variant within it.
+
+    Facet counts, grid positions, spans and panel ratios identify variants;
+    scientific encodings, transformations, layers and shared relationships
+    identify families. The original specification remains the rendering source.
+    """
+    signature = drawing_signature(spec)
+    raw = json.dumps(signature, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    plan = _family_plan(signature)
+    family_raw = json.dumps(plan, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    grammar = ([row["kind"] for row in signature["panels"]] if signature["renderer"] == "panels"
+               else [signature["renderer"] + ":" + signature["kind"]])
+    panel_count = len(grammar)
+    if signature["renderer"] == "template":
+        panel_count = {"mechanism_overview": 5, "benchmark_atlas": 5, "ablation_interactions": 5,
+                       "scaling_robustness": 6, "representation_diagnostics": 5,
+                       "biological_atlas": 4, "paired_effects": 4, "calibration_errors": 6,
+                       "sensitivity_dynamics": 4}.get(signature["kind"], 1)
+        if signature["kind"] == "sensitivity_dynamics" and spec.get("data", {}).get("panel_pair") in {"sensitivity", "dynamics"}:
+            panel_count = 2
+    elif signature["renderer"] == "layout":
+        panel_count = (len(spec.get("data", {}).get("tracks", [])) or 1) if signature["kind"] == "aligned_tracks" else 3
+    return {"id": "figure-family-" + hashlib.sha256(family_raw.encode("utf-8")).hexdigest()[:16],
+            "variant_id": "figure-variant-" + hashlib.sha256(raw.encode("utf-8")).hexdigest()[:16],
+            "signature": signature, "family_signature": plan, "grammar": grammar,
+            "panel_count": panel_count,
+            "features": sorted(set(re.findall(r'"([a-z_]+)":true', raw)))}
+
+
+def _panel_structure(kinds, columns=None, positions=None, overrides=None):
+    columns = columns or (2 if len(kinds) == 4 else min(3, len(kinds)))
+    panels = []
+    for i, kind in enumerate(kinds):
+        data = {field: [None] for field in explain(kind)["required"]}
+        data.update((overrides or {}).get(str(i), {}))
+        panels.append({"id": "p" + str(i), "kind": kind, "row": i // columns,
+                       "column": i % columns, "data": data})
+        if positions:
+            panels[-1].update(positions[i])
+    rows = max(panel["row"] + panel.get("rowspan", 1) for panel in panels)
+    return {"version": 1, "rows": rows, "columns": columns, "panels": panels}
+
+
+def _fusion_structure(row):
+    layout = row.get("layout", {})
+    return _panel_structure(row["panels"], layout.get("columns"), layout.get("positions"))
+
+
+def _chart_family(kind, available=None):
+    spec = _panel_structure([kind])
+    if available:
+        for key in set(available) & {key for fields in _FEATURE_FIELDS.values() for key in fields}:
+            spec["panels"][0]["data"].setdefault(key, [None])
+    return family_for_spec(spec)
+
+
+def _standard_family_inputs():
+    entries, specs = [], {}
+    for chart in catalog()["charts"]:
+        key = "primitive:" + chart["id"]
+        entries.append({"id": key, "title": chart["title"], "type": "primitive",
+                        "intent_ids": chart["intents"], "why": chart["why"]})
+        specs[key] = _panel_structure([chart["id"]])
+    for row in catalog()["fusions"]:
+        key = "fusion:" + row["id"]
+        entries.append({"id": key, "title": row["title"], "type": "fusion",
+                        "intent_ids": row.get("primary_intents", []), "why": row["why"]})
+        specs[key] = _fusion_structure(row)
+    for row in json.loads((LIBRARY / "examples.json").read_text(encoding="utf-8")):
+        entries.append({**row, "type": row["category"], "intent_ids": row.get("intents", [])})
+        declarations = row.get("drawing_options", {})
+        if not isinstance(declarations, dict):
+            raise ValueError("Example drawing_options must be an object")
+        declared_data = copy.deepcopy(declarations)
+        if row.get("layout"):
+            specs[row["id"]] = {"version": 1, "layout": row["layout"], "data": declared_data}
+        else:
+            declared_data["panel_pair"] = row.get("panel_pair", "all")
+            specs[row["id"]] = {"version": 1, "template": row["template"],
+                                "data": declared_data}
+    for row in json.loads((LIBRARY / "studies.json").read_text(encoding="utf-8")):
+        key = "paper:" + row["id"]
+        entries.append({"id": key, "title": row["short_title"], "type": "study",
+                        "intent_ids": row.get("intents", []), "why": row["why"],
+                        "source_id": row["source_id"]})
+        specs[key] = ({"version": 1, "layout": row["native_layout"], "data": {}}
+                      if row.get("native_layout") else _panel_structure(row["panel_plan"], row.get("columns"), overrides=row.get("panel_overrides")))
+    return entries, specs
+
+
+def families(entries=None, *, specs=None):
+    """Group catalog or supplied gallery entries without deleting contextual aliases.
+
+    For a rendered gallery, pass its actual specs keyed by entry ID. Entries
+    without a specification (legacy assets/atlas) remain distinct. No supplied
+    path is opened or source file executed by this function.
+    """
+    if entries is None:
+        entries, specs = _standard_family_inputs()
+    if not isinstance(entries, list) or not isinstance(specs, dict):
+        raise ValueError("Supply entries and their specifications keyed by ID")
+    groups, seen = {}, set()
+    priority = {"featured": -1, "reference": 0, "composition": 1, "template": 1, "original": 1, "fusion": 2, "linked": 3, "layout": 3, "study": 4, "paper": 4, "primitive": 5}
+    for row in entries:
+        key = row.get("id")
+        if not isinstance(key, str) or not key or key in seen:
+            raise ValueError("Family members need unique nonempty IDs")
+        seen.add(key)
+        asset_hash = hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+        identity = (family_for_spec(specs[key]) if key in specs else
+                    {"id": "asset-family-" + asset_hash, "variant_id": "asset-variant-" + asset_hash,
+                     "signature": {"asset": key}, "family_signature": {"asset": key},
+                     "grammar": [], "panel_count": 0, "features": []})
+        family = groups.setdefault(identity["id"], {"members": [], "identities": {}})
+        family["identities"][key] = identity
+        family["members"].append({name: row[name] for name in ("id", "title", "type", "category", "why", "intent_ids", "source_id") if name in row})
+    result = []
+    for family in groups.values():
+        members = family["members"]
+        representative = min(members, key=lambda row: (priority.get(row.get("type", row.get("category")), 9), row["id"]))
+        identity = family["identities"][representative["id"]]
+        variants = {}
+        for member in members:
+            member_identity = family["identities"][member["id"]]
+            variant = variants.setdefault(member_identity["variant_id"], {
+                "id": member_identity["variant_id"], "signature": member_identity["signature"],
+                "panel_count": member_identity["panel_count"], "members": []})
+            variant["members"].append(member)
+        variant_rows = []
+        for variant in variants.values():
+            preferred = min(variant["members"], key=lambda row: (priority.get(row.get("type", row.get("category")), 9), row["id"]))
+            variant_rows.append({"id": variant["id"], "signature": variant["signature"],
+                                 "panel_count": variant["panel_count"], "title": preferred.get("title", preferred["id"]),
+                                 "representative_id": preferred["id"], "member_ids": [row["id"] for row in variant["members"]]})
+        result.append({**identity, "members": members,
+                       "title": representative.get("title", representative["id"]),
+                       "representative_id": representative["id"], "member_ids": [row["id"] for row in members],
+                       "why": representative.get("why", "Same declared drawing structure; inspect each member's scientific conditions."),
+                       "intent_ids": sorted({value for row in members for value in row.get("intent_ids", [])}),
+                       "variant_count": len(variant_rows), "variants": variant_rows,
+                       "level": "composition" if identity["signature"].get("renderer") in {"template", "layout"} or identity["panel_count"] > 1 else "primitive"})
+    result.sort(key=lambda row: row["level"] != "primitive")
+    return {"version": 1, "total_examples": len(entries), "total_families": len(result),
+            "total_variants": sum(row["variant_count"] for row in result), "families": result}
 
 
 def _nonnegative_integer(value, name):
@@ -136,13 +465,57 @@ def _input_compatible(entry, available, excluded):
     return entry["id"] not in excluded and (available is None or set(entry["required"]).issubset(available))
 
 
-def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude=(), context=None):
+def element_plan(kind, fields=None):
+    """A small evidence-gated plan; keys/labels alone are not analytical layers."""
+    entry=next((row for row in catalog()["charts"] if row["id"]==kind),None)
+    if entry is None:raise ValueError("Unknown chart grammar")
+    available=set(fields or [])
+    roles=list(entry.get("analysis_elements",[]))
+    additions=[]
+    if {"lower","upper"}<=available or {"series.lower","series.upper"}<=available:
+        additions.append("supplied_range")
+    if "corridor" in available:
+        additions.extend(["conditional_region","threshold_boundaries","conditional_state_share"])
+        weights="weights" in available or "corridor.weights" in available
+        weight_kind="weight_kind" in available or "corridor.weight_kind" in available
+        if weights and ("counts" not in available or weight_kind):additions.append("weighted_share")
+    if "reference_value" in available:additions.append("supplied_reference")
+    if "threshold" in available and "conditional_region" not in additions:additions.append("supplied_threshold")
+    if "annotations" in available or "annotate" in available:additions.append("selected_value_labels")
+    analytical=[r for r in roles+additions if r!="selected_value_labels"]
+    return {"base":roles,"add_from_supplied_data":additions,
+            "needs_enrichment":len(set(analytical))<2,
+            "rule":"Select supported relationships from the article; legends and labels do not replace analysis."}
+
+
+def describe_plot(kind, data=None):
+    entry=next((row for row in catalog()["charts"] if row["id"]==kind),None)
+    if entry is None:raise ValueError("Unknown chart grammar")
+    data=data or {}
+    def supplied(value):
+        return value is not None and value is not False and not (isinstance(value,(list,dict,str,tuple)) and len(value)==0)
+    fields={key for key,value in data.items() if supplied(value)}
+    for name in ("series","corridor","summary"):
+        value=data.get(name)
+        blocks=value if isinstance(value,list) else [value]
+        for block in blocks:
+            if isinstance(block,dict):fields.update(name+"."+key for key,value in block.items() if supplied(value))
+    inputs=list(entry.get("input_types",[]))
+    if kind=="binned_summary":inputs=["quantile_summaries"] if data.get("summary") is not None else ["grouped_samples"]
+    if kind=="density_map":inputs=["binned_counts"] if data.get("counts") is not None else ["raw_xy"]
+    plan=element_plan(kind,fields)
+    return {"input_types":inputs,"chart_types":entry.get("chart_types",[]),"element_plan":plan}
+
+
+def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude=(), context=None, input_type=None, chart_type=None):
     """Sample without replacement from equally relevant, data-compatible charts.
 
     Does not mutate history. Record a selection only after accepting it. A local
     revision reuses the accepted composition, not a new route call.
     """
     brief=_brief(context)
+    if input_type is not None and input_type not in catalog().get("input_types",{}):raise ValueError("Unknown input data type")
+    if chart_type is not None and chart_type not in catalog().get("chart_types",{}):raise ValueError("Unknown chart type")
     question=question or brief.get("question") or brief.get("claim")
     if not isinstance(question, str) or not question.strip():
         raise ValueError("Supply a scientific question or intent")
@@ -151,8 +524,26 @@ def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude
     if seed is not None:_nonnegative_integer(seed, "seed")
     counts = _usage(usage)
     text = " ".join([question,brief.get("claim","")]).casefold()
+    if fields is not None and (isinstance(fields,str) or not all(isinstance(v,str) for v in fields)):
+        raise ValueError("fields must be a list of parameter names")
+    known_fields=brief.get("data",{}).get("fields")
+    if fields is not None and known_fields is not None and set(fields)!=set(known_fields):
+        raise ValueError("CLI fields and paper brief fields disagree")
+    available = None if fields is None and known_fields is None else set(fields if fields is not None else known_fields)
     named_text=question.casefold()
     named=next((entry for entry in catalog()["charts"] if entry["id"]==named_text),None)
+    # A chosen exemplar is a rendering contract, not another semantic search.
+    selection_name=named_text
+    for prefix,target in (("template--","original:"),("reference--","reference:"),("linked--","layout:"),
+                          ("fusion--","fusion:"),("study--","paper:")):
+        if selection_name.startswith(prefix):selection_name=target+selection_name[len(prefix):];break
+    pinned=next((entry for entry in examples() if entry["id"].casefold()==selection_name
+                 or (entry.get("category")=="original" and entry.get("template")==named_text)),None)
+    if pinned:
+        return {"question":question,"selection_policy":"selected_example","selected_example":copy.deepcopy(pinned),
+                "candidates":[],"fields_checked":False,
+                "reuse_command":"compose --spec <selected-example.json> --data <supplied-data.json> --out <prefix>",
+                "instruction":"Reuse the selected JSON/Python. Replace its complete data with replace_data; retain layout, style and layers. Do not reroute or regenerate demo data."}
     intents = list(brief.get("intent_ids",[]))
     for key, entry in catalog()["intents"].items():
         if text == key or any(_matches(term,text) for term in entry["terms"]):
@@ -160,18 +551,14 @@ def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude
     if not intents:
         if named:intents=list(named["intents"])
         else:raise ValueError("No intent matched; use an intent ID from --list or state the scientific relationship")
-    if fields is not None and (isinstance(fields,str) or not all(isinstance(v,str) for v in fields)):
-        raise ValueError("fields must be a list of parameter names")
-    known_fields=brief.get("data",{}).get("fields")
-    if fields is not None and known_fields is not None and set(fields)!=set(known_fields):
-        raise ValueError("CLI fields and paper brief fields disagree")
-    available = None if fields is None and known_fields is None else set(fields if fields is not None else known_fields)
     exclude=set(exclude)|set(brief.get("exclude_charts",[]))
     unknown = set(exclude) - {c["id"] for c in catalog()["charts"]}
     if unknown:
         raise ValueError(f"Unknown excluded charts: {sorted(unknown)}")
     candidates = [];fit_info={};rejected=[]
     for entry in catalog()["charts"]:
+        if input_type is not None and input_type not in entry.get("input_types",[]):continue
+        if chart_type is not None and chart_type not in entry.get("chart_types",[]):continue
         if named and entry["id"]!=named["id"]:continue
         if not _input_compatible(entry,available,exclude) or not set(entry["intents"]) & set(intents):
             continue
@@ -194,6 +581,8 @@ def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude
         for fusion in catalog()["fusions"]:
             if not set(fusion.get("primary_intents",[])).intersection(intents):continue
             members=[explain(kind) for kind in fusion["panels"]]
+            if input_type is not None and not all(input_type in row.get("input_types",[]) for row in members):continue
+            if chart_type is not None and not any(chart_type in row.get("chart_types",[]) for row in members):continue
             if not all(_input_compatible(entry,available,exclude) for entry in members):continue
             if len(fusion["panels"])>layout.get("max_panels",12):continue
             meanings=set().union(*(set(explain(kind)["intents"]) for kind in fusion["panels"]))
@@ -213,6 +602,9 @@ def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude
                          "alignment_contract":fusion["alignment_contract"],"panels":list(fusion["panels"]),
                          "data_bindings_required":True,"score":score,
                          "paper_fit":list(dict.fromkeys(reason for _,reasons,_ in member_fits for reason in reasons))}
+            family = family_for_spec(_fusion_structure(fusion))
+            option["family_id"] = family["id"]
+            option["variant_id"] = family["variant_id"]
             fits.append((score,option))
         selected_fusions=[]
         while fits and len(selected_fusions)<3:
@@ -220,7 +612,8 @@ def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude
             tier=[item for item in fits if item[0]==best]
             weights=[1/(1+sum(counts.get(kind,0) for kind in set(option["panels"]))/len(set(option["panels"]))) for _,option in tier]
             chosen=rng.choices(tier,weights=weights,k=1)[0]
-            selected_fusions.append(chosen[1]);fits.remove(chosen)
+            selected_fusions.append(chosen[1])
+            fits=[item for item in fits if item[1]["family_id"] != chosen[1]["family_id"]]
         result["fusion_options"]=selected_fusions
     if rejected:result["incompatible_charts"]=rejected
     if not candidates:
@@ -234,13 +627,19 @@ def route(question=None, *, fields=None, count=3, seed=None, usage=None, exclude
         weights = [1 / (1 + counts.get(entry["id"], 0)) for _, entry in tier]
         chosen = rng.choices(tier, weights=weights, k=1)[0]
         score, entry = chosen
+        family = _chart_family(entry["id"])
+        family_id = family["id"]
         selected.append({"id": entry["id"], "title": entry["title"], "score": score,
+                         "input_types":entry.get("input_types",[]),"chart_types":entry.get("chart_types",[]),
+                         "element_plan":element_plan(entry["id"],available),
                          "why": entry["why"], "required": list(entry["required"]),
                          "paper_fit":fit_info[entry["id"]][0],"check_before_use":fit_info[entry["id"]][1],
                          "previous_selections": counts.get(entry["id"], 0),
+                         "family_id": family_id,
+                         "variant_id": family["variant_id"],
                          "design_card": f"explain {entry['id']}"})
-        candidates.remove(chosen)
-    result.update(selection_policy="paper meaning and declared data conditions, then random choice within the best fit; optional history breaks ties",
+        candidates = [item for item in candidates if _chart_family(item[1]["id"])["id"] != family_id]
+    result.update(selection_policy="paper meaning and declared data conditions, one candidate per declared drawing family, then random choice within the best fit; optional history breaks ties",
                   candidates=selected)
     return result
 
@@ -526,6 +925,163 @@ def _coherent_demo(spec,seed):
     if linked:spec["_meta"]["shared_simulation_contracts"]=linked
 
 
+def single_panel_spec(spec, panel_id, *, width_mm=88, height_mm=68):
+    """Reuse one supplied panel and its layers without copying or resampling data.
+
+    Resolve external tables before calling this helper. Keep the original
+    figure's entity order so extraction cannot change category colors.
+    Linked layouts and templates are atomic; they need their own explicit data
+    specification rather than cropping a rendered image.
+    """
+    panels = spec.get("panels") if isinstance(spec, dict) else None
+    if not isinstance(panels, list):
+        raise ValueError("Select a panel from an explicit panels specification; linked layouts stay atomic")
+    matches = [node for node in panels if node.get("id") == panel_id]
+    if len(matches) != 1:
+        raise ValueError("Select one existing, unique panel ID")
+    if any(not math.isfinite(float(v)) or not 30 <= float(v) <= 1000 for v in (width_mm, height_mm)):
+        raise ValueError("Use finite physical dimensions from 30 to 1000 mm")
+    result = copy.deepcopy(spec)
+    identities = copy.deepcopy(spec.get("entity_order", []))
+    if not identities:
+        for panel in panels:
+            for node in [panel, *panel.get("layers", [])]:
+                for name in (_entity_sequence(node["kind"], node["data"]) or []) + node.get("entity_ids", []):
+                    if name not in identities:
+                        identities.append(name)
+    if identities:
+        result["entity_order"] = identities
+    node = copy.deepcopy(matches[0])
+    node.update(row=0, column=0, rowspan=1, colspan=1)
+    for key in ("shared_axes", "width_ratios", "height_ratios", "title"):
+        result.pop(key, None)
+    result.update(rows=1, columns=1, panels=[node], width_mm=float(width_mm), height_mm=float(height_mm), panel_letters=False)
+    result.setdefault("_meta", {}).update(selected_panel=panel_id)
+    return result
+
+
+
+
+def _replacement_presentation(previous, supplied, *, kind=None, palette="npg"):
+    """Carry visual controls, never missing observations or interval endpoints."""
+    result=copy.deepcopy(supplied)
+    visual={"color","bar_color","line_color","box_color","cmap","missing_color","alpha","band_alpha",
+            "marker","markersize","linewidth","linestyle","font_size","tick_font_size","label_wrap",
+            "bar_style","bar_labels","value_format","xscale","yscale","summary_mode","quantile","gridsize"}
+    legend_visual={"loc","ncol","ncols","fontsize","title_fontsize","frameon","framealpha","edgecolor",
+                   "facecolor","borderaxespad","handlelength","handletextpad","columnspacing","labelspacing",
+                   "mode","bbox_to_anchor","markerfirst","alignment"}
+    old_id=next((previous[k] for k in ("method","label") if isinstance(previous.get(k),str)),None)
+    new_id=next((result[k] for k in ("method","label") if isinstance(result.get(k),str)),None)
+    renamed=old_id is not None and new_id is not None and old_id!=new_id
+    for key in visual:
+        if key not in result and key in previous and not (renamed and key in {"color","marker","linestyle"}):
+            result[key]=copy.deepcopy(previous[key])
+    if "annotate" not in result and isinstance(previous.get("annotate"),bool):result["annotate"]=previous["annotate"]
+    for key in ("legend","legend_options"):
+        if key not in result and isinstance(previous.get(key),bool):result[key]=previous[key]
+        if isinstance(previous.get(key),dict):
+            retained={k:copy.deepcopy(v) for k,v in previous[key].items() if k in legend_visual}
+            if key not in result and retained:result[key]=retained
+            elif isinstance(result[key],dict):result[key]={**retained,**result[key]}
+    for key,value in list(result.items()):
+        old=previous.get(key)
+        if key in ("legend","legend_options","_meta"):continue
+        if isinstance(value,dict) and isinstance(old,dict):
+            result[key]=_replacement_presentation(old,value,palette=palette)
+        elif key=="series" and isinstance(value,list) and isinstance(old,list):
+            def identity(row):
+                return next(((k,row[k]) for k in ("method","label") if isinstance(row,dict) and isinstance(row.get(k),str)),None)
+            indexed={identity(row):row for row in old if identity(row) is not None}
+            # Duplicate or absent IDs do not justify positional style transfer.
+            if len(indexed)==len(old):
+                result[key]=[_replacement_presentation(indexed[identity(row)],row,palette=palette)
+                             if identity(row) in indexed else copy.deepcopy(row) for row in value]
+    from ccfa_plot_recipes import PALETTES
+    for key in ("colors","entity_colors"):
+        if key in result or key not in previous:continue
+        old_ids=previous.get("methods") if key=="entity_colors" else (_entity_sequence(kind,previous) if kind else None)
+        new_ids=result.get("methods") if key=="entity_colors" else (_entity_sequence(kind,result) if kind else None)
+        colors=previous[key]
+        if colors is None:continue
+        if old_ids is None and new_ids is None and kind is not None:
+            result[key]=copy.deepcopy(colors)  # Fixed channel roles, e.g. before/after or negative/neutral/positive.
+        elif isinstance(old_ids,list) and isinstance(new_ids,list):
+            mapped=colors if isinstance(colors,dict) else dict(zip(old_ids,colors)) if len(colors)==len(old_ids) else {}
+            if any(key in mapped for key in new_ids):
+                fallback=PALETTES[palette]
+                result[key]=[mapped.get(name,fallback[i%len(fallback)]) for i,name in enumerate(new_ids)]
+    return result
+
+
+def replace_data(spec, supplied):
+    """Replace complete data while keeping a selected figure's rendering plan.
+
+    Templates/layouts accept their raw data object. Panel compositions accept
+    {"panels":[{"id":...,"data":...,"layers":[{"data":...}, ...]}, ...]}.
+    Every selected panel/layer must be supplied; otherwise old demonstration
+    values could silently survive. Pure presentation controls are retained,
+    with series styles matched by stable method/label identity, never index. Use normal table bindings in the source
+    composition for CSV/TSV rather than mixing bindings with this raw-data API.
+    """
+    if not isinstance(spec,dict) or spec.get("version")!=1:
+        raise ValueError("Data replacement requires an existing version=1 composition")
+    if not isinstance(supplied,dict):raise ValueError("Replacement data must be an object")
+    if "data_sources" in spec or "table" in spec:
+        raise ValueError("Resolve table bindings before replacing data")
+    result=copy.deepcopy(spec)
+    if "template" in result or "layout" in result:
+        if set(supplied)&{"version","template","layout","panels","data_sources","table"}:
+            raise ValueError("Supply the template/layout data only; use compose --spec for a full composition")
+        result["data"]=_replacement_presentation(result.get("data",{}),supplied,palette=result.get("palette","ccfa"))
+        if "title" in supplied:result["title"]=supplied["title"]
+        incoming_meta=supplied.get("_meta",{})
+    else:
+        if set(supplied)-{"panels","_meta"} or not isinstance(supplied.get("panels"),list):
+            raise ValueError("Panel replacement needs a panels list with IDs and complete data/layers")
+        panels=result.get("panels",[]);incoming=supplied["panels"]
+        ids=[row.get("id") for row in incoming if isinstance(row,dict)]
+        if len(ids)!=len(incoming) or len(ids)!=len(set(ids)) or set(ids)!={p["id"] for p in panels}:
+            raise ValueError("Replacement must supply every panel ID exactly once")
+        by_id={row["id"]:row for row in incoming}
+        for panel in panels:
+            node=by_id[panel["id"]]
+            if set(node)-{"id","data","layers"} or not isinstance(node.get("data"),dict):
+                raise ValueError("Panel replacement changes data only, not the selected drawing plan")
+            layers=node.get("layers",[])
+            if not isinstance(layers,list) or len(layers)!=len(panel.get("layers",[])):
+                raise ValueError("Replacement must supply every selected overlay layer")
+            for old,new in zip(panel.get("layers",[]),layers):
+                if not isinstance(new,dict) or set(new)!={"data"} or not isinstance(new["data"],dict):
+                    raise ValueError("Each replacement layer needs only its complete data object")
+                old["data"]=_replacement_presentation(old["data"],new["data"],kind=old["kind"],palette=result.get("palette","npg"))
+            panel["data"]=_replacement_presentation(panel["data"],node["data"],kind=panel["kind"],palette=result.get("palette","npg"))
+        incoming_meta=supplied.get("_meta",{})
+        identities=[]
+        for panel in panels:
+            for node in [panel,*panel.get("layers",[])]:
+                for key in (_entity_sequence(node["kind"],node["data"]) or [])+node.get("entity_ids",[]):
+                    if key not in identities:identities.append(key)
+        previous=result.get("entity_order",[])
+        if identities and not set(identities)<=set(previous):
+            result["entity_order"]=(previous+[key for key in identities if key not in previous]
+                                    if set(identities)&set(previous) else identities)
+    if not isinstance(incoming_meta,dict):raise ValueError("Replacement _meta must be an object")
+    meta=result.setdefault("_meta",{})
+    provenance={key:meta.pop(key) for key in ("study_id","source_id","source_figure","fidelity") if key in meta}
+    if provenance:meta["design_reference"]=provenance
+    for key in ("synthetic","seed","randomness","shared_simulation_contracts","data_file"):
+        meta.pop(key,None)
+    if meta.get("purpose") and spec.get("_meta",{}).get("synthetic"):
+        meta.pop("purpose",None)
+    retained=[]
+    if result.get("title"):retained.append({"scope":"figure","text":result["title"]})
+    retained.extend({"scope":panel["id"],"text":panel["title"]} for panel in result.get("panels",[]) if panel.get("title"))
+    meta.update(copy.deepcopy(incoming_meta));meta.update(data_replaced=True,data_status="supplied")
+    if retained:meta["retained_text_to_check"]=retained
+    return result
+
+
 def compose(spec):
     """Compose an explicit panel plan without filling any missing data."""
     import matplotlib.pyplot as plt
@@ -550,6 +1106,7 @@ def compose(spec):
         import ccfa_analysis_templates as templates
         data=copy.deepcopy(spec.get("data",{}))
         if spec.get("_meta"):data["_meta"]=copy.deepcopy(spec["_meta"])
+        if spec.get("title"):data["title"]=spec["title"]
         return templates.render_template(spec["template"],data,palette=spec.get("palette","ccfa"),
             font=spec.get("font","serif"),font_size=font_size,width_mm=spec.get("width_mm",183),height_mm=spec.get("height_mm"))
     panels = spec.get("panels")
@@ -621,8 +1178,8 @@ def compose(spec):
     enc = p.entity_encoding(identities, palette=palette) if identities else {}
     with p.paper_style(spec.get("font","serif"),font_size):
         fig = p.new_figure(width_mm=width,height_mm=height)
-        fig.set_layout_engine("constrained",w_pad=.045,h_pad=.055,wspace=.12,hspace=.15,
-                              rect=(0,.055,1,.96 if spec.get("title") else 1))
+        fig.set_layout_engine("constrained",w_pad=.025,h_pad=.03,wspace=.035,hspace=.045,
+                              rect=(0,.055,1,.90 if spec.get("title") else .945))
         grid = fig.add_gridspec(rows,cols,width_ratios=spec.get("width_ratios"),height_ratios=spec.get("height_ratios"))
         axes = {}
         try:
@@ -664,9 +1221,13 @@ def compose(spec):
                         getattr(ax,"set_"+axis+"scale")(scale)
                 if panel.get("legend"):
                     handles,labels=ax.get_legend_handles_labels()
-                    if handles:ax.legend(frameon=False,fontsize=max(6,font_size-1))
-                ax.text(0,1.065,f"({chr(97+i)}) {panel.get('title','')}",transform=ax.transAxes,
-                        ha="left",va="bottom",weight="bold",fontsize=font_size,clip_on=False)
+                    if handles:p.compact_legend(ax,handles=handles,labels=labels,fontsize=max(7,font_size-1))
+                heading = panel.get('title','')
+                if spec.get("panel_letters", len(panels) > 1):
+                    heading = f"({chr(97+i)}) {heading}"
+                if heading:
+                    ax.text(0,1.04,heading,transform=ax.transAxes,
+                            ha="left",va="bottom",weight="bold",fontsize=font_size,clip_on=False)
             by_id={panel["id"]:panel for panel in panels}
             for group in spec.get("shared_axes",[]):
                 axis=group.get("axis");members=group.get("panels",[])
@@ -691,7 +1252,7 @@ def compose(spec):
             if spec.get("title"):fig.suptitle(spec["title"],fontsize=font_size+1.5,weight="bold")
             if spec.get("_meta",{}).get("synthetic"):
                 fig.text(.99,.009,"Simulated data · design reconstruction",ha="right",va="bottom",fontsize=7,color="#66717A")
-            return fig
+            return p.finish_paper_style(fig)
         except Exception:
             plt.close(fig)
             raise
@@ -772,7 +1333,7 @@ def example_spec(example_id, *, demo=False, data=None, seed=None):
     return spec
 
 
-def export(spec, base, *, formats=("svg","png"), python_source=True, protected_paths=()):
+def export(spec, base, *, formats=("png",), python_source=True, protected_paths=()):
     import matplotlib.pyplot as plt
     import ccfa_analysis_panels as p
     spec=_plain(spec)
@@ -809,6 +1370,8 @@ def main(argv=None):
     sub.add_parser("list")
     e=sub.add_parser("explain");e.add_argument("kind")
     r=sub.add_parser("route");r.add_argument("question",nargs="?");r.add_argument("--brief",type=Path);r.add_argument("--fields",nargs="*");r.add_argument("--count",type=int,default=3);r.add_argument("--seed",type=int,help=argparse.SUPPRESS);r.add_argument("--history",type=Path);r.add_argument("--exclude",nargs="*",default=[])
+    r.add_argument("--input-type",choices=tuple(catalog().get("input_types",{})))
+    r.add_argument("--chart-type",choices=tuple(catalog().get("chart_types",{})))
     h=sub.add_parser("record");h.add_argument("--history",type=Path,required=True);h.add_argument("kinds",nargs="+")
     studies_parser=sub.add_parser("studies")
     studies_parser.add_argument("--id")
@@ -816,19 +1379,27 @@ def main(argv=None):
     studies_parser.add_argument("--offset",type=int,default=0)
     studies_parser.add_argument("--limit",type=int,default=12)
     sub.add_parser("fusions")
+    family_parser=sub.add_parser("families", help="Canonical drawing structures with preserved contextual members")
+    family_parser.add_argument("--id")
+    family_parser.add_argument("--member", help="Existing ID such as paper:<study>, primitive:<chart>, or reference:sensitivity-pair")
+    family_parser.add_argument("--variant", help="Inspect the family containing a strict structural variant")
+    family_parser.add_argument("--offset",type=int,default=0)
+    family_parser.add_argument("--limit",type=int,default=12)
     ex=sub.add_parser("examples");ex.add_argument("--category",choices=("original","reference","paper","fusion","layout"));ex.add_argument("--id");ex.add_argument("--offset",type=int,default=0);ex.add_argument("--limit",type=int,default=12)
     use=sub.add_parser("example");use.add_argument("id");use.add_argument("--demo",action="store_true");use.add_argument("--data",type=Path);use.add_argument("--out",type=Path,required=True)
     layout=sub.add_parser("layout");layout.add_argument("kind");layout.add_argument("--demo",action="store_true");layout.add_argument("--data",type=Path);layout.add_argument("--out",type=Path,required=True)
     d=sub.add_parser("demo");d.add_argument("kinds",nargs="*");d.add_argument("--fusion");d.add_argument("--seed",type=int,help=argparse.SUPPRESS);d.add_argument("--columns",type=int);d.add_argument("--out",type=Path,required=True)
     c=sub.add_parser("compose");c.add_argument("--spec",type=Path,required=True);c.add_argument("--out",type=Path,required=True)
+    c.add_argument("--data",type=Path,help="Replace all selected data while retaining the source JSON layout/style; no demo fallback")
     s=sub.add_parser("reproduce");s.add_argument("study");s.add_argument("--demo",action="store_true");s.add_argument("--data",type=Path);s.add_argument("--seed",type=int,help=argparse.SUPPRESS);s.add_argument("--out",type=Path,required=True)
     for output_parser in (d,c,s,use,layout):
-        output_parser.add_argument("--formats",nargs="+",choices=("svg","pdf","png"),default=["svg","png"])
+        output_parser.add_argument("--formats",nargs="+",choices=("svg","pdf","png"),default=["png"],help="PNG by default; request SVG/PDF explicitly")
+        output_parser.add_argument("--panel", help="Render one named supplied panel, retaining its layers and data")
     args=parser.parse_args(argv)
     try:
-        if args.command=="list":result={"intents":catalog()["intents"],"charts":[{"id":c["id"],"title":c["title"],"intents":c["intents"],"required":c["required"]} for c in catalog()["charts"]]}
+        if args.command=="list":result={"intents":catalog()["intents"],"input_types":catalog().get("input_types",{}),"chart_types":catalog().get("chart_types",{}),"charts":[{key:c[key] for key in ("id","title","intents","required","input_types","chart_types")} for c in catalog()["charts"]]}
         elif args.command=="explain":result=explain(args.kind)
-        elif args.command=="route":result=route(args.question,fields=args.fields,count=args.count,seed=args.seed,usage=json.loads(args.history.read_text(encoding="utf-8")) if args.history and args.history.exists() else None,exclude=args.exclude,context=json.loads(args.brief.read_text(encoding="utf-8-sig")) if args.brief else None)
+        elif args.command=="route":result=route(args.question,fields=args.fields,count=args.count,seed=args.seed,usage=json.loads(args.history.read_text(encoding="utf-8")) if args.history and args.history.exists() else None,exclude=args.exclude,context=json.loads(args.brief.read_text(encoding="utf-8-sig")) if args.brief else None,input_type=args.input_type,chart_type=args.chart_type)
         elif args.command=="record":result=record_selection(args.history,args.kinds)
         elif args.command=="studies":
             rows=json.loads((LIBRARY/"studies.json").read_text(encoding="utf-8"))
@@ -842,6 +1413,20 @@ def main(argv=None):
                 if args.offset<0 or not 1<=args.limit<=50:raise ValueError("Use a nonnegative offset and limit between 1 and 50")
                 result={"total":len(rows),"offset":args.offset,"studies":[{key:row[key] for key in ("id","short_title","venue","year","figure","panel_plan")} for row in rows[args.offset:args.offset+args.limit]]}
         elif args.command=="fusions":result=catalog()["fusions"]
+        elif args.command=="families":
+            index=families()
+            rows=index["families"]
+            if args.id or args.member or args.variant:
+                rows=[row for row in rows if (not args.id or row["id"]==args.id)
+                      and (not args.member or args.member in row["member_ids"])
+                      and (not args.variant or args.variant in {variant["id"] for variant in row["variants"]})]
+                if len(rows)!=1:raise ValueError("Unknown or inconsistent family/member ID")
+                result=rows[0]
+            else:
+                if args.offset<0 or not 1<=args.limit<=50:raise ValueError("Use a nonnegative offset and limit from 1 to 50")
+                result={"version":1,"total_examples":index["total_examples"],"total_families":index["total_families"],
+                        "total_variants":index["total_variants"],
+                        "offset":args.offset,"families":[{key:row[key] for key in ("id","title","representative_id","member_ids","why","intent_ids","level","panel_count","variant_count")} for row in rows[args.offset:args.offset+args.limit]]}
         elif args.command=="examples":
             rows=examples()
             if args.id:
@@ -852,7 +1437,7 @@ def main(argv=None):
                 if args.offset<0 or not 1<=args.limit<=50:raise ValueError("Use a nonnegative offset and limit from 1 to 50")
                 result={"total":len(rows),"offset":args.offset,"examples":rows[args.offset:args.offset+args.limit]}
         else:
-            protected=[]
+            protected=[];panel_selected=False
             if args.command=="demo":
                 kinds=args.kinds
                 if args.fusion:
@@ -862,6 +1447,11 @@ def main(argv=None):
             elif args.command=="compose":
                 from ccfa_figure_data import load_composition
                 spec,protected=load_composition(args.spec)
+                if args.panel:
+                    spec=single_panel_spec(spec,args.panel);panel_selected=True
+                if args.data:
+                    spec=replace_data(spec,json.loads(args.data.read_text(encoding="utf-8-sig")))
+                    protected.append(args.data.resolve())
             elif args.command in ("example","layout"):
                 if args.demo and args.data:raise ValueError("Use --demo or --data")
                 data=None
@@ -880,6 +1470,8 @@ def main(argv=None):
                     from ccfa_figure_data import load_composition
                     data,protected=load_composition(args.data)
                 spec=study_spec(args.study,demo=args.demo,data=data,seed=args.seed)
+            if args.panel and not panel_selected:
+                spec=single_panel_spec(spec,args.panel)
             result={k:str(v) for k,v in export(spec,args.out,formats=tuple(args.formats),protected_paths=protected).items()}
         print(json.dumps(result,ensure_ascii=False,indent=2,allow_nan=False))
     except (OSError,ValueError,TypeError,KeyError) as exc:parser.error(str(exc))

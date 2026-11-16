@@ -19,7 +19,7 @@ python -B "<papers-dir>/tools/install_release.py" --source "<papers-dir>" --targ
 
 先安装同版 lean；也可在安装 lean 时增加 `--papers "<papers-dir>"`。工具不会自动下载 PDF。原文学习仍使用保留的真实段落，遇到必须检查原版排版或提取错误时，再安装完整包或读取获准使用的原始来源。Git clone 与 `npx skills` 仍取得包含 PDF 的完整源码，不能把它们当作轻量下载。
 
-两个包使用同一发布身份、版本和 manifest 格式，记录相对路径、技能列表、文件大小与 SHA-256。安装前校验完整来源，拒绝路径穿越和符号链接，用 `.ccfa-release-receipt.json` 记录工具管理的文件哈希。后续只替换未被改动的旧安装文件，完全相同的文件可安全接管；发现个人修改会在复制前停止，留给你合并。额外用户文件、偏好、上游已移除的旧文件均不自动删除，也没有强制覆盖选项。旧手动/npx 安装若有差异，先核对合并再接管。详见[更新说明](getting-started/AUTO_UPDATE.md)。
+两个包使用同一发布身份、版本和 manifest 格式，记录相对路径、技能列表、文件大小与 SHA-256。安装前校验完整来源，拒绝路径穿越和符号链接，用 `.ccfa-release-receipt.json` 记录工具管理的文件哈希。后续只替换未被改动的旧安装文件，完全相同的文件可安全接管。lean manifest 是所选技能及依赖资源的完整清单。此前受安装器管理、已从清单移除且安装哈希未变的旧文件会退役清理，`--dry-run` 列出 `retired_files` 与 `retired_paths`。待替换或退役文件若有个人修改，整次操作在写入前停止并报告具体路径，先合并再重试。未受管文件、额外用户文件、偏好、可选 papers PDF 和未选中的技能保留；没有强制覆盖选项。旧手动/npx 安装若有差异，先核对合并再接管。详见[更新说明](getting-started/AUTO_UPDATE.md)。
 
 可以只安装部分 skills，但任何子集都必须包含 `ccf-humanization` 和 `ccf-common`。下表列出任务负责人；还需保留所用模式读取的相邻资源：审稿、实验、脚手架和投稿模式可能读取 `ccf-paper-writer/references/`，模板模式需要安装根目录下相邻的 `ccf-latex-templates/`，旧版写作转换命令依赖 `ccf-paper-to-exemplar/scripts/convert.py`。资源依赖不代表授权运行对应 skill。完整仓库或插件布局保留这些路径；仅复制 skill 的安装器还需同步所需资源树。
 
@@ -46,13 +46,13 @@ python -B "<papers-dir>/tools/install_release.py" --source "<papers-dir>" --targ
 | 审稿/审计子集 | `ccf-common`, `ccf-humanization`, `ccf-paper-reviewer`, `ccf-integrity-auditor` | 可以诊断问题，但不能写作、广泛检索、设计实验或检查投稿包。 |
 | 监控子集 | `ccf-common`, `ccf-humanization`, `ccf-literature-monitor`, `ccf-literature-searcher`, `ccf-idea-reviewer`, `ccf-idea-optimizer` | 能追踪新论文和竞品信号，但不能写作或投稿。 |
 | 早期研究子集 | `ccf-common`, `ccf-humanization`, `ccf-pipeline-orchestrator`, `ccf-idea-optimizer`, `ccf-idea-reviewer`, `ccf-literature-monitor`, `ccf-literature-searcher`, `ccf-experiment-designer` | 没有正文写作、图表视觉整合、投稿检查和 rebuttal。 |
-| 图表/正文呈现子集 | `ccf-common`, `ccf-humanization`, `ccf-experiment-designer`, `ccf-visual-composer`, `ccf-paper-writer`, `ccf-integrity-auditor`, `ccf-submission-checker` | 能基于真实结果制作论文图表、Python SVG 绘图、配色、caption、正文嵌入和一致性检查，但不能做完整文献检索或完整审稿。 |
+| 图表/正文呈现子集 | `ccf-common`, `ccf-humanization`, `ccf-experiment-designer`, `ccf-visual-composer`, `ccf-paper-writer`, `ccf-integrity-auditor`, `ccf-submission-checker` | 能基于真实结果制作论文图表、Python 数值绘图、配色、caption、正文嵌入和一致性检查，但不能做完整文献检索或完整审稿。 |
 | 投稿子集 | `ccf-common`, `ccf-humanization`, `ccf-paper-writer`, `ccf-visual-composer`, `ccf-submission-checker`, `ccf-integrity-auditor` | 能查格式、投稿包、artifact 和图表展示，但不能完整审稿。 |
 | 维护子集 | `ccf-common`, `ccf-humanization`, `ccf-skill-forger` | 只做家族维护和文档 SVG 生成。 |
 
 ## 部分安装示例
 
-在仓库 clone 的根目录执行以下命令，先复制写作子集，再补齐下一节的相邻资源。更新前先比较个人修改。重复复制会合并目录内容，不会多嵌一层；上游已删除的旧文件不会自动清除，需要根据差异单独处理。
+在仓库 clone 的根目录执行以下命令，先复制写作子集，再补齐下一节的相邻资源。更新前先比较个人修改。重复复制会合并目录内容，不会多嵌一层；手动复制不会清理上游已删除的文件；需要受管更新与退役清理时，核对个人差异后使用同版 lean 安装器。
 
 默认目标依据本地核对的 `skills` CLI 1.5.22：Codex 全局安装使用 `$CODEX_HOME/skills`，未设置或为空时回退到 `~/.codex/skills`；项目安装使用 `.agents/skills`。先用 `npx skills list --global --agent codex` 确认实际位置。其他客户端、项目安装或新版安装器，请把下面两组命令中的 `ccfa_skills_dir` / `$ccfaSkillsDir` 改为对应安装根目录，不要把资源补到另一个 Codex 目录。
 
@@ -87,7 +87,7 @@ foreach ($ccfaPath in $ccfaPaths) {
 
 ## 补齐相邻资源
 
-`npx skills add ... --skill '*' --copy` 安装全部 18 个 skills，但不会复制没有 `SKILL.md` 的根目录 `ccf-latex-templates/`。请从与安装 skills 相同版本的仓库执行以下命令。这组资源同时补齐部分安装所需的参考文件和旧版转换脚本。仅复制资源不代表安装或调用资源所属 skill；任务需要它的能力时，仍需单独安装对应技能。完整仓库或插件布局已保留这些相邻路径。
+`npx skills add ... --skill '*' --copy` 安装全部 18 个 skills，但不会复制没有 `SKILL.md` 的根目录 `ccf-latex-templates/` 与 `assets/visual-showcase/`。请从与安装 skills 相同版本的仓库执行以下命令。这组资源同时补齐部分安装所需的参考文件和旧版转换脚本。仅复制资源不代表安装或调用资源所属 skill；任务需要它的能力时，仍需单独安装对应技能。完整仓库或插件布局已保留这些相邻路径。
 
 Bash:
 
@@ -96,7 +96,7 @@ ccfa_codex_home="${CODEX_HOME:-}"
 ccfa_codex_home="${ccfa_codex_home#"${ccfa_codex_home%%[![:space:]]*}"}"
 ccfa_codex_home="${ccfa_codex_home%"${ccfa_codex_home##*[![:space:]]}"}"
 ccfa_skills_dir="${ccfa_codex_home:-$HOME/.codex}/skills"
-ccfa_paths=(ccf-paper-writer/references ccf-paper-writer/scripts ccf-paper-to-exemplar/scripts ccf-latex-templates)
+ccfa_paths=(ccf-paper-writer/references ccf-paper-writer/scripts ccf-paper-to-exemplar/scripts ccf-latex-templates assets/visual-showcase)
 for ccfa_path in "${ccfa_paths[@]}"; do
   mkdir -p "$ccfa_skills_dir/$ccfa_path"
   cp -R "$ccfa_path/." "$ccfa_skills_dir/$ccfa_path/"
@@ -108,7 +108,7 @@ PowerShell:
 ```powershell
 $ccfaCodexHome = if ([string]::IsNullOrWhiteSpace($env:CODEX_HOME)) { Join-Path $HOME ".codex" } else { $env:CODEX_HOME.Trim() }
 $ccfaSkillsDir = Join-Path $ccfaCodexHome "skills"
-$ccfaPaths = @("ccf-paper-writer/references", "ccf-paper-writer/scripts", "ccf-paper-to-exemplar/scripts", "ccf-latex-templates")
+$ccfaPaths = @("ccf-paper-writer/references", "ccf-paper-writer/scripts", "ccf-paper-to-exemplar/scripts", "ccf-latex-templates", "assets/visual-showcase")
 foreach ($ccfaPath in $ccfaPaths) {
   $ccfaDestination = Join-Path $ccfaSkillsDir $ccfaPath
   New-Item -ItemType Directory -Force -Path $ccfaDestination | Out-Null
@@ -116,4 +116,4 @@ foreach ($ccfaPath in $ccfaPaths) {
 }
 ```
 
-安装中断时，回执会记录 pending。使用同一个包、相同技能选择和相同目标重新执行即可继续；安装后又被手工修改的文件会停止更新，保留你的内容。正式构建默认只打包 Git 已登记路径；开发时如需未跟踪文件，显式使用 `--include-untracked`。manifest 记录源码提交与 dirty 状态。
+复制或退役清理中断时，回执会记录 pending。使用同一个包、相同技能选择和相同目标重新执行即可继续；安装后又被手工修改的文件会停止更新，保留你的内容。正式构建默认只打包 Git 已登记路径；开发时如需未跟踪文件，显式使用 `--include-untracked`。manifest 记录源码提交与 dirty 状态。

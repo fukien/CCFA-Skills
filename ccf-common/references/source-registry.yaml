@@ -7,6 +7,42 @@ default_stale_after_days:
   background_method: 730
   local_reference: 365
 sources:
+  - id: cvpr-2027-author-guidelines
+    title: CVPR 2027 Author Guidelines
+    url: https://cvpr.thecvf.com/Conferences/2027/AuthorGuidelines
+    source_type: venue_policy
+    used_by: [ccf-paper-writer, ccf-project-scaffolder, ccf-submission-checker, ccf-paper-reviewer]
+    recorded_at: 2026-11-12
+    verified_at: 2026-11-12
+    stale_after_days: 30
+    notes: "Exact-year main-track rules inspected: eight main-text pages excluding cited references and the required LLM Usage Statement; statement describes actual generative-AI use or none. Includes anonymity, author enrollment, reciprocal reviewing and self-contained submissions. Assigned confidential reviews use only conference-approved OpenReview tools; author-owned internal pre-review has a distinct scope. Recheck the live policy before actual submission."
+  - id: cvpr-2027-author-kit
+    title: CVPR 2027 Official Author Kit v1
+    url: https://media.eventhosts.cc/Conferences/CVPR2027/author-kit-CVPR2027-v1-latex.zip
+    source_type: venue_policy
+    used_by: [ccf-paper-writer, ccf-project-scaffolder, ccf-submission-checker]
+    recorded_at: 2026-11-12
+    verified_at: 2026-11-12
+    stale_after_days: 30
+    notes: "Downloaded the official linked ZIP; SHA256 da1ec5db9b73531ea82a87723e4aedb631083331fe655d1972279b48a7bdb2fe. The separately inspected CVPR2027-v1 tag at cvpr-org/author-kit resolves to a2369342011145be8c85e5ad21a9b61f9fa53473; it is not byte-identical to the linked website ZIP (teaser inclusion and style whitespace differ). Year-isolated mirror and per-file hashes live under ccf-latex-templates/CVPR/2027/. The upstream sample does not itself complete the mandatory LLM Usage Statement."
+  - id: cvpr-2027-dates
+    title: CVPR 2027 Dates And Deadlines
+    url: https://cvpr.thecvf.com/Conferences/2027/Dates
+    source_type: venue_policy
+    used_by: [ccf-submission-checker]
+    recorded_at: 2026-11-12
+    verified_at: 2026-11-12
+    stale_after_days: 7
+    notes: "Official dates inspected with the author guide: abstract/author registration 2026-11-10, paper 2026-11-16, supplementary 2026-11-23, AoE. These deadlines and OpenReview enrollment status require live confirmation for an actual submission; a local PDF cannot prove enrollment, author quotas or completed uploads."
+  - id: mapanything-factored-geometry-2026
+    title: "MapAnything: Universal Feed-Forward Metric 3D Reconstruction"
+    url: https://arxiv.org/html/2509.13414v3
+    source_type: paper_or_proceeding
+    used_by: [ccf-literature-searcher, ccf-visual-composer]
+    recorded_at: 2026-10-31
+    verified_at: 2026-10-31
+    stale_after_days: 365
+    notes: "3DV 2026; arXiv v3 dated 2026-01-23. Inspected original PDF pages 3, 4 and 8, Figure 2, Section 3 and Table 5(a,b). Used the factored output topology and the reported 50-view ablations for two authoring prompts. Display design is an adaptation; no new experiment, sample distribution, uncertainty interval or causal claim is inferred from the aggregates."
   - id: anthropic-agent-evaluation-methods
     title: Demystifying evals for AI agents
     url: https://www.anthropic.com/research/demystifying-evals-for-ai-agents
@@ -1150,78 +1186,6 @@ sources:
     verified_at: 2026-06-06
     stale_after_days: 3650
     notes: Official NeurIPS 2017 paper PDF used for demo/attention-is-all-you-need official BLEU, training schedule, model configuration, and complexity table values.
-  - id: livefigure-editable-scientific-illustration
-    title: "LiveFigure: Generating Editable Scientific Illustration with VLM Agents"
-    url: https://arxiv.org/abs/2605.23527
-    source_type: paper_or_proceeding
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Blueprint-first reference induction, PowerPoint-native procedural generation, isolated icon assets, and rendered visual diagnosis.
-  - id: autofigure-edit-editable-svg
-    title: "AutoFigure-Edit: Generating Editable Scientific Illustration"
-    url: https://arxiv.org/abs/2603.06674
-    source_type: paper_or_proceeding
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Reference-guided style adaptation and native editable SVG generation.
-  - id: scifig-editable-figure-generation
-    title: "SciFig: Towards Automating Editable Figure Generation for Scientific Papers"
-    url: https://arxiv.org/abs/2601.04390
-    source_type: paper_or_proceeding
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Hierarchical composition and editable methodology-figure generation from scientific text.
-  - id: pptxgenjs-shapes
-    title: PptxGenJS Shapes Documentation
-    url: https://gitbrent.github.io/PptxGenJS/docs/api-shapes.html
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Native PowerPoint shapes, text-bearing shapes, coordinates, styling, and stable object names for deterministic PPTX reconstruction.
-  - id: microsoft-edit-svg-office
-    title: Edit SVG Images in Microsoft 365
-    url: https://support.microsoft.com/en-us/office/graphics-visuals/edit-svg-images-in-microsoft-365
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Official support for inserting, formatting, and converting SVG graphics to Office shapes in supported Microsoft 365 applications.
-  - id: lucide-icons
-    title: Lucide Icon Toolkit
-    url: https://github.com/lucide-icons/lucide
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Coherent open-source SVG icon family for common scientific-diagram concepts; record the applicable license with delivered assets.
-  - id: material-icons-svg
-    title: Material Design Icons SVG Repository
-    url: https://material-icons.github.io/material-icons/
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-09
-    verified_at: 2026-08-09
-    stale_after_days: 365
-    notes: Alternative coherent SVG icon family with multiple visual variants under Apache License 2.0.
-  - id: svg2pptx-native-shapes
-    title: SVG to PowerPoint Shape Converter
-    url: https://github.com/benouinirachid/svg2pptx
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-08-10
-    verified_at: 2026-08-10
-    stale_after_days: 365
-    notes: MIT-licensed SVG parser that reconstructs rectangles, circles, lines, polygons, paths, groups, and live text as native PowerPoint objects; gradients and filters require QA or fallback reconstruction.
   - id: ai-scientist-v2
     title: The AI Scientist-v2
     url: https://github.com/SakanaAI/AI-Scientist-v2
@@ -1357,24 +1321,6 @@ sources:
     verified_at: 2026-09-16
     stale_after_days: 180
     notes: Inspected commit cc13467d3b5fe9404267e723327bf383664d96ab, art-direction/design-prior/selected-edit guidance, and conditional-flow, planar-ripple, and manifold previews. Informs coordinated presets, reference responsibilities, detail-view semantics, and protected edits. No upstream code or artwork is redistributed; cached images are inspection references, not new CCFA showcase assets.
-  - id: d2-grid-layout
-    title: D2 Grid Diagram Layout
-    url: https://d2lang.com/tour/grid-diagrams/
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-09-16
-    verified_at: 2026-09-16
-    stale_after_days: 180
-    notes: Reference for row/column grouping, explicit gaps, and content-aware cell bounds. Layout principles only; no runtime dependency or automatic routing guarantee.
-  - id: elk-layered-layout
-    title: Eclipse Layout Kernel Layered Layout
-    url: https://eclipse.dev/elk/reference/algorithms/org-eclipse-elk-layered.html
-    source_type: background_method
-    used_by: [ccf-visual-composer]
-    recorded_at: 2026-09-16
-    verified_at: 2026-09-16
-    stale_after_days: 180
-    notes: Reference for shared ports, edge routing, layered groups, and compaction. CCFA uses explicit geometry guidance without adding a layout-engine dependency.
   - id: openreview-default-review-form
     title: OpenReview Default Review Form
     url: https://docs.openreview.net/reference/default-forms/default-review-form

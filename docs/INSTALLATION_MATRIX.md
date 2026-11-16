@@ -19,7 +19,7 @@ python -B "<papers-dir>/tools/install_release.py" --source "<papers-dir>" --targ
 
 Install the matching lean release first. Alternatively supply `--papers "<papers-dir>"` during its installation. No PDF download occurs automatically. Original-text learning remains available in lean mode; install the optional pack or use an authorized original source when the selected passage needs visual PDF inspection. Git clones and `npx skills` still obtain the full source, including its PDFs; the repository itself has not been made lean.
 
-Both profiles use the same release identity, version and manifest format, with relative paths, skill inventory, file sizes and SHA-256 hashes. The installer validates the source before copying, rejects unsafe paths and symlinks, and records its own managed hashes in `.ccfa-release-receipt.json`. Later installations replace only matching old managed files or adopt identical files. Personal edits stop the preflight for reconciliation; extra user files, saved preferences and removed-upstream files are retained. There is no force-overwrite or cleanup option. For an older manual/npx installation, compare and reconcile differing files before adoption. See [updates](getting-started/AUTO_UPDATE.md).
+Both profiles use the same release identity, version and manifest format, with relative paths, skill inventory, file sizes and SHA-256 hashes. The installer validates the source before copying, rejects unsafe paths and symlinks, and records its own managed hashes in `.ccfa-release-receipt.json`. Later installations replace only matching old managed files or adopt identical files. The lean manifest is the complete inventory for the selected skills and their resource dependencies. An old managed file absent from that inventory is retired only if its installed hash is unchanged; `--dry-run` lists `retired_files` and `retired_paths`. Personal edits to a replacement or retirement target stop the whole operation before writes and report the path for reconciliation. Unmanaged/user files, saved preferences, optional papers PDFs and unselected skills are retained. There is no force-overwrite option. For an older manual/npx installation, compare and reconcile differing files before adoption. See [updates](getting-started/AUTO_UPDATE.md).
 
 Partial installation is supported, but both `ccf-humanization` and `ccf-common` must be installed with every subset. The sets below describe task owners. Also retain the sibling resource directories read by the selected modes: reviewer, experiment, scaffolding, and submission modes can read `ccf-paper-writer/references/`; template modes need `ccf-latex-templates/` beside the installed skills. The legacy writer converter uses `ccf-paper-to-exemplar/scripts/convert.py`. A resource dependency does not authorize running its owning skill. A full repository/plugin layout preserves these paths; a skill-only installer may need the resource trees copied as well.
 
@@ -46,13 +46,13 @@ These subsets provide the listed capabilities, not every possible helper. If the
 | Review/audit subset | `ccf-common`, `ccf-humanization`, `ccf-paper-reviewer`, `ccf-integrity-auditor` | Can diagnose but cannot write, search broadly, design experiments, or check packages. |
 | Monitoring subset | `ccf-common`, `ccf-humanization`, `ccf-literature-monitor`, `ccf-literature-searcher`, `ccf-idea-reviewer`, `ccf-idea-optimizer` | Tracks new overlap signals and routes deeper search or idea repair, but cannot write or submit. |
 | Early research subset | `ccf-common`, `ccf-humanization`, `ccf-pipeline-orchestrator`, `ccf-idea-optimizer`, `ccf-idea-reviewer`, `ccf-literature-monitor`, `ccf-literature-searcher`, `ccf-experiment-designer` | No manuscript, submission, or rebuttal support. |
-| Visual/manuscript presentation subset | `ccf-common`, `ccf-humanization`, `ccf-experiment-designer`, `ccf-visual-composer`, `ccf-paper-writer`, `ccf-integrity-auditor`, `ccf-submission-checker` | Can turn supplied results into paper-ready visuals, Python SVG plots, and consistency checks, but cannot search literature or run full review. |
+| Visual/manuscript presentation subset | `ccf-common`, `ccf-humanization`, `ccf-experiment-designer`, `ccf-visual-composer`, `ccf-paper-writer`, `ccf-integrity-auditor`, `ccf-submission-checker` | Can turn supplied results into paper-ready visuals, Python-rendered PNG figures, and consistency checks, but cannot search literature or run full review. |
 | Submission subset | `ccf-common`, `ccf-humanization`, `ccf-paper-writer`, `ccf-visual-composer`, `ccf-submission-checker`, `ccf-integrity-auditor` | Can check format/package/artifacts and visual placement, but not run full review. |
 | Maintenance subset | `ccf-common`, `ccf-humanization`, `ccf-skill-forger` | Only family maintenance and docs/SVG generation. |
 
 ## Partial Install Example
 
-Run these commands from a clone of the repository root. They copy the writing subset, then the sibling resources below. Compare any personal edits before updating. Repeated copies merge contents without nesting directories; files removed upstream are not deleted automatically, so review those removals separately.
+Run these commands from a clone of the repository root. They copy the writing subset, then the sibling resources below. Compare any personal edits before updating. Repeated copies merge contents without nesting directories; this manual copy does not retire removed files. Use the matching lean installer for managed updates and retirement after reconciling any personal differences.
 
 The default target matches the locally inspected `skills` CLI 1.5.22: Codex global installs use `$CODEX_HOME/skills`, falling back to `~/.codex/skills`; project installs use `.agents/skills`. Verify your actual destination with `npx skills list --global --agent codex`. For a different client, project install, or newer installer, replace `ccfa_skills_dir` / `$ccfaSkillsDir` with that installation's root in both examples. Do not copy resources into an unrelated Codex directory.
 
@@ -87,7 +87,7 @@ foreach ($ccfaPath in $ccfaPaths) {
 
 ## Sibling resources
 
-`npx skills add ... --skill '*' --copy` installs all 18 skills, but does not copy the root-level `ccf-latex-templates/` directory, which has no `SKILL.md`. Run the following from the same repository revision used for the skills. This resource bundle also covers partial-install references and legacy conversion scripts. Copying these resources does not install or authorize their owning skills; add a specialist separately when the task needs its capability. Full repository/plugin layouts already retain the sibling paths.
+`npx skills add ... --skill '*' --copy` installs all 18 skills, but does not copy the root-level `ccf-latex-templates/` and `assets/visual-showcase/` resource directories, which have no `SKILL.md`. Run the following from the same repository revision used for the skills. This resource bundle also covers partial-install references and legacy conversion scripts. Copying these resources does not install or authorize their owning skills; add a specialist separately when the task needs its capability. Full repository/plugin layouts already retain the sibling paths.
 
 Bash:
 
@@ -96,7 +96,7 @@ ccfa_codex_home="${CODEX_HOME:-}"
 ccfa_codex_home="${ccfa_codex_home#"${ccfa_codex_home%%[![:space:]]*}"}"
 ccfa_codex_home="${ccfa_codex_home%"${ccfa_codex_home##*[![:space:]]}"}"
 ccfa_skills_dir="${ccfa_codex_home:-$HOME/.codex}/skills"
-ccfa_paths=(ccf-paper-writer/references ccf-paper-writer/scripts ccf-paper-to-exemplar/scripts ccf-latex-templates)
+ccfa_paths=(ccf-paper-writer/references ccf-paper-writer/scripts ccf-paper-to-exemplar/scripts ccf-latex-templates assets/visual-showcase)
 for ccfa_path in "${ccfa_paths[@]}"; do
   mkdir -p "$ccfa_skills_dir/$ccfa_path"
   cp -R "$ccfa_path/." "$ccfa_skills_dir/$ccfa_path/"
@@ -108,7 +108,7 @@ PowerShell:
 ```powershell
 $ccfaCodexHome = if ([string]::IsNullOrWhiteSpace($env:CODEX_HOME)) { Join-Path $HOME ".codex" } else { $env:CODEX_HOME.Trim() }
 $ccfaSkillsDir = Join-Path $ccfaCodexHome "skills"
-$ccfaPaths = @("ccf-paper-writer/references", "ccf-paper-writer/scripts", "ccf-paper-to-exemplar/scripts", "ccf-latex-templates")
+$ccfaPaths = @("ccf-paper-writer/references", "ccf-paper-writer/scripts", "ccf-paper-to-exemplar/scripts", "ccf-latex-templates", "assets/visual-showcase")
 foreach ($ccfaPath in $ccfaPaths) {
   $ccfaDestination = Join-Path $ccfaSkillsDir $ccfaPath
   New-Item -ItemType Directory -Force -Path $ccfaDestination | Out-Null
@@ -116,4 +116,4 @@ foreach ($ccfaPath in $ccfaPaths) {
 }
 ```
 
-Interrupted installs retain a pending receipt. Resume with the same package, selection and target; intervening personal edits stop replacement and remain intact. Release builds default to indexed Git paths; development builds can explicitly use `--include-untracked`. The manifest records the source commit and dirty state.
+Interrupted copies and retirements retain a pending receipt. Resume with the same package, selection and target; intervening personal edits stop replacement and remain intact. Release builds default to indexed Git paths; development builds can explicitly use `--include-untracked`. The manifest records the source commit and dirty state.
