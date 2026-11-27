@@ -2,7 +2,20 @@
 
 Use this index to find original passages that help substantive drafting or a specific writing problem, including requested venue or exemplar adaptation. Load matching sections, then inspect the original passage. Do not load every card or rank writing quality by venue or awards.
 
+This is the bundled public collection. New personal cards are registered outside installed skills through `ccf-paper-to-exemplar/scripts/personal_library.py`; the writer's [source selection guidance](../exemplar-style-analysis.md) explains metadata queries and source inspection. Registering a private example does not edit this index or change the bundled default format.
+
 The lean release keeps the original Markdown passages and cards. Complete PDFs are an explicit optional offline pack; their absence alone does not prevent learning from a matched original text. When extraction or layout requires the PDF, install the matching pack or use an authorized original source, then inspect the selected passage. The full Git source still contains the PDFs. See the [installation profiles](../../../docs/INSTALLATION_MATRIX.md#lean-release-installation-recommended).
+
+## Reference papers by field
+
+Each selection includes three papers from three conferences, with at most three authors per paper. The field guides link the original work and the conference presentation or award record.
+
+- [Natural language processing](papers/acl/README.md)
+- [Machine learning](papers/icml/README.md)
+- [Computer vision](papers/eccv/README.md)
+- [Programming languages](papers/ecoop/README.md)
+- [Computer networking](papers/imc/README.md)
+- [Computer security](papers/acsac/README.md)
 
 ## Default Custom Format
 
